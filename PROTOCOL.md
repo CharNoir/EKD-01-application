@@ -26,10 +26,10 @@ CRC16 = `~sum(LEN … last DATA byte) & 0xFFFF`. All 280 frames in the capture v
 1. Phone sends HELLO (`10`, CMD `01`, ARG `00`, data `04`). The display replies with a 4-byte challenge.
 2. Phone sends AUTH (`10`, CMD `20`, ARG `00`) with the 16-byte reply below. The ack carries 1 status byte:
    `00` = accepted, non-zero = rejected.
-3. Phone sends three time-sync writes to `10` (CMD `02`), each a 4-byte LE value: ARG `3E` = UTC epoch,
-   ARG `42` = UTC offset in seconds (3600 in Budapest in winter, DST included), ARG `46` = local time as an epoch
-   (UTC + offset). The display shows the ARG `46` value, so it must be local time. Sending plain UTC there makes the
-   display show UTC. (Which of the three the display uses is inferred, not verified in the capture.)
+3. Phone sends one time-sync write to `10` (CMD `02`, ARG `46`): the LOCAL time as an epoch (UTC + the phone's
+   current UTC offset, DST included), 4-byte LE. The display shows this value as-is, so plain UTC makes it show UTC.
+   Verified on the display: this single write is enough. BikeGo also writes ARG `3E` (UTC epoch) and ARG `42`
+   (UTC offset in seconds); they turned out not to be needed.
 4. The display then sends telemetry about once a second.
 
 BikeGo also reads A5/18 (device name, e.g. `EKD01_TB_N22`), A5/88, A5/E0 and F1/01 (26-byte settings block)
@@ -126,4 +126,3 @@ Verified in the capture: 66 %, 40.43 km trip, 3723.37 km odometer.
 
 - Byte 9 as current speed is what `Protocol.kt` decodes; the original capture had speed 0, so it is not verified against the capture.
 - Contents of the startup reads (A5/88, A5/E0, F1/01 block) are not decoded.
-- Whether the time-sync writes are required for any display feature is untested.

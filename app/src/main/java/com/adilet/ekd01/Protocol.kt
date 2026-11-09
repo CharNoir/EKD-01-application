@@ -65,13 +65,11 @@ object Protocol {
     fun authFrame(challenge4: ByteArray) = build(PHONE, DISPLAY, 0x20, 0x00, computeAuthReply(challenge4))
 
     /**
-     * Three writes to DISPLAY (args 3E / 42 / 46), each a 4-byte LE value:
-     * UTC epoch, the phone's current UTC offset in seconds (DST included), and the LOCAL time as an
-     * epoch (UTC + offset). The display shows the local one, so it must not be plain UTC.
+     * Time sync: one write to DISPLAY, ARG 46 = LOCAL time as an epoch (UTC + the phone's current
+     * UTC offset, DST included), 4-byte LE. The display shows this value as-is, so sending plain UTC
+     * makes it show UTC. Verified on the display that this single write is enough.
      */
     fun timeSyncFrames(utcEpochSeconds: Long, tzOffsetSeconds: Long = localOffsetSeconds(utcEpochSeconds)): List<ByteArray> = listOf(
-        build(PHONE, DISPLAY, 0x02, 0x3E, leBytes(utcEpochSeconds, 4)),
-        build(PHONE, DISPLAY, 0x02, 0x42, leBytes(tzOffsetSeconds, 4)),
         build(PHONE, DISPLAY, 0x02, 0x46, leBytes(utcEpochSeconds + tzOffsetSeconds, 4))
     )
 
