@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Base shape for the battery fill. Its color here is just a placeholder - at runtime
+     MainActivity.updateBatteryViews() recolors it via imageTintList based on percent
+     (green >=50%, amber 20-49%, red <20%), and sets the clip level for fill width. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/ok" />
+    <corners android:radius="1dp" />
+</shape>

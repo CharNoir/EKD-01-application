@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/page_bg">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <LinearLayout style="@style/CardContainer">
+            <Button android:id="@+id/backBtn" style="@style/AmberButton" android:text="← Back" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="Assist level" />
+            <TextView android:id="@+id/assistLabel" style="@style/BodyText" android:textSize="13sp" android:text="Assist level: 0" />
+            <!-- minSdk 26, so android:min is safe to use directly -->
+            <SeekBar android:id="@+id/assistSlider" style="@style/AmberSlider" android:min="0" android:max="5" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="BT unlock level" />
+            <TextView android:id="@+id/btUnlockLabel" style="@style/BodyText" android:textSize="13sp" android:text="BT unlock level: 1" />
+            <SeekBar android:id="@+id/btUnlockSlider" style="@style/AmberSlider" android:min="1" android:max="5" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="Brightness" />
+            <TextView android:id="@+id/brightnessLabel" style="@style/BodyText" android:textSize="13sp" android:text="Brightness: 2" />
+            <SeekBar android:id="@+id/brightnessSlider" style="@style/AmberSlider" android:min="1" android:max="4" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="Device settings" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <Button android:id="@+id/unitsKmBtn" style="@style/AmberButton.Row" android:text="Units: KM" />
+                <Button android:id="@+id/unitsMiBtn" style="@style/AmberButton.Row" android:text="Units: MI" />
+            </LinearLayout>
+            <EditText android:id="@+id/autoOffInput" style="@style/StyledEditText" android:hint="Auto-off timeout (minutes)" android:inputType="number" />
+            <Button android:id="@+id/setAutoOffBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="Set auto-off" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="Main screen" />
+            <CheckBox
+                android:id="@+id/showBatteryPercentCheckbox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:text="Show battery percentage next to the battery icon" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="Developer" />
+            <Button android:id="@+id/developerNavBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="Developer menu" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

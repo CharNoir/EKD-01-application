@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/page_bg"
+    android:padding="12dp">
+
+    <!-- Connection icon AND the connect/disconnect button, in one: gray=disconnected,
+         amber=connecting, green=connected (tinted by setStatus() in MainActivity). -->
+    <ImageView
+        android:id="@+id/connectionIcon"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:padding="6dp"
+        android:src="@drawable/ic_bluetooth"
+        app:tint="@color/neutral"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Tap to connect or disconnect"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Battery percentage label, toggleable from Settings, sits just left of the icon -->
+    <TextView
+        android:id="@+id/batteryPercentLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_primary"
+        android:textSize="13sp"
+        android:text="—%"
+        app:layout_constraintTop_toTopOf="@id/batteryIconFrame"
+        app:layout_constraintBottom_toBottomOf="@id/batteryIconFrame"
+        app:layout_constraintEnd_toStartOf="@id/batteryIconFrame"
+        android:layout_marginEnd="6dp" />
+
+    <!-- Battery icon, top-right: outline frame + a clip-drawable fill whose width tracks
+         the percentage and whose color tracks the level (green/amber/red). -->
+    <FrameLayout
+        android:id="@+id/batteryIconFrame"
+        android:layout_width="26dp"
+        android:layout_height="14dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/batteryNub"
+        android:layout_marginEnd="2dp">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/battery_outline" />
+
+        <ImageView
+            android:id="@+id/batteryFillImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="2dp"
+            android:src="@drawable/battery_fill_clip"
+            android:contentDescription="Battery level" />
+    </FrameLayout>
+
+    <!-- The little nub on the battery's right end -->
+    <View
+        android:id="@+id/batteryNub"
+        android:layout_width="2dp"
+        android:layout_height="6dp"
+        android:background="@color/text_hint"
+        app:layout_constraintTop_toTopOf="@id/batteryIconFrame"
+        app:layout_constraintBottom_toBottomOf="@id/batteryIconFrame"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Big speed readout, centered between the top bar and the icon row. Live value from
+         T1 byte 9 (speedKmh in Protocol.kt), updated in handleIncoming(). -->
+    <TextView
+        android:id="@+id/speedValueLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="—"
+        android:textSize="64sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        app:layout_constraintTop_toBottomOf="@id/connectionIcon"
+        app:layout_constraintBottom_toTopOf="@id/settingsIconBtn"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_bias="0.35" />
+
+    <TextView
+        android:id="@+id/speedUnitLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="km/h"
+        android:textSize="13sp"
+        android:textColor="@color/text_hint"
+        app:layout_constraintTop_toBottomOf="@id/speedValueLabel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Odometer, smaller, under the speed/unit block -->
+    <TextView
+        android:id="@+id/odoLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Odo: —"
+        android:textSize="14sp"
+        android:textColor="@color/text_hint"
+        android:layout_marginTop="6dp"
+        app:layout_constraintTop_toBottomOf="@id/speedUnitLabel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Settings icon, bottom-left of the icon row -->
+    <TextView
+        android:id="@+id/settingsIconBtn"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:gravity="center"
+        android:textSize="22sp"
+        android:text="⚙️"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Settings"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/tripStatsBar"
+        android:layout_marginStart="20dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Assist level stepper, centered between the settings and light icons: minus /
+         current level / plus. Tap +/- sends Protocol.setAssist() and optimistically
+         updates the number; the next T1 telemetry packet confirms it. -->
+    <LinearLayout
+        android:id="@+id/assistControlRow"
+        android:layout_width="wrap_content"
+        android:layout_height="44dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintStart_toEndOf="@id/settingsIconBtn"
+        app:layout_constraintEnd_toStartOf="@id/lightIconBtn"
+        app:layout_constraintBottom_toTopOf="@id/tripStatsBar"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/assistMinusBtn"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:gravity="center"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:text="−"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Decrease assist level" />
+
+        <TextView
+            android:id="@+id/assistLevelLabel"
+            android:layout_width="28dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:text="—" />
+
+        <TextView
+            android:id="@+id/assistPlusBtn"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:gravity="center"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:text="+"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Increase assist level" />
+    </LinearLayout>
+
+    <!-- Light toggle, bottom-right of the icon row: headlight icon (lamp + fanned beam
+         lines, like a car low/high-beam dash symbol), tinted amber when on / gray when
+         off by updateLightButtonVisual(). Tap flips state instantly, next telemetry
+         packet confirms it. -->
+    <ImageView
+        android:id="@+id/lightIconBtn"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:padding="8dp"
+        android:src="@drawable/ic_headlight"
+        app:tint="@color/neutral"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Toggle light"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/tripStatsBar"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Bottom bar: compact trip stats -->
+    <LinearLayout
+        android:id="@+id/tripStatsBar"
+        style="@style/CardContainer"
+        android:layout_width="0dp"
+        android:layout_marginBottom="0dp"
+        android:orientation="horizontal"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center">
+            <TextView android:id="@+id/tripDistLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="DISTANCE" android:textSize="10sp" android:textColor="@color/text_hint" />
+        </LinearLayout>
+
+        <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center">
+            <TextView android:id="@+id/tripTimeLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TIME" android:textSize="10sp" android:textColor="@color/text_hint" />
+        </LinearLayout>
+
+        <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center">
+            <TextView android:id="@+id/tripMaxLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="MAX" android:textSize="10sp" android:textColor="@color/text_hint" />
+        </LinearLayout>
+
+        <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center">
+            <TextView android:id="@+id/tripAvgLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="AVG" android:textSize="10sp" android:textColor="@color/text_hint" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

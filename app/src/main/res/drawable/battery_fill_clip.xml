@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Standard Android "battery meter" pattern: a ClipDrawable whose level (0-10000, set via
+     ImageView.setImageLevel()) controls how much of the shape is visible, clipped from the
+     start. percent*100 = level, so 72% battery -> level 7200 -> 72% of the width shown. -->
+<clip xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/battery_fill_shape"
+    android:clipOrientation="horizontal"
+    android:gravity="start" />
