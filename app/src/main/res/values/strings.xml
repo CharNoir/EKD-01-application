@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EKD01 Control</string>
+    <string name="back">← Back</string>
+    <string name="assist_level_title">Assist level</string>
+    <string name="bt_unlock_title">BT unlock level</string>
+    <string name="bt_unlock_value">BT unlock level: %1$d</string>
+    <string name="brightness_title">Brightness</string>
+    <string name="brightness_value">Brightness: %1$d</string>
+    <string name="device_settings">Device settings</string>
+    <string name="units_km">Units: KM</string>
+    <string name="units_mi">Units: MI</string>
+    <string name="auto_off_hint">Auto-off timeout (minutes)</string>
+    <string name="set_auto_off">Set auto-off</string>
+    <string name="main_screen_title">Main screen</string>
+    <string name="show_battery_percent">Show battery percentage next to the battery icon</string>
+    <string name="developer_title">Developer</string>
+    <string name="developer_menu">Developer menu</string>
+    <string name="cd_connection">Tap to connect or disconnect</string>
+    <string name="cd_battery_level">Battery level</string>
+    <string name="cd_settings">Settings</string>
+    <string name="cd_assist_decrease">Decrease assist level</string>
+    <string name="cd_assist_increase">Increase assist level</string>
+    <string name="cd_toggle_light">Toggle light</string>
+    <string name="speed_unit">km/h</string>
+    <string name="battery_percent">%1$d%%</string>
+    <string name="battery_percent_unknown">—%</string>
+    <string name="odo_value">Odo: %1$.2f km</string>
+    <string name="odo_unknown">Odo: —</string>
+    <string name="distance_km">%1$.2f km</string>
+    <string name="stat_distance">DISTANCE</string>
+    <string name="stat_time">TIME</string>
+    <string name="stat_max">MAX</string>
+    <string name="stat_avg">AVG</string>
+    <string name="enter_timeout_minutes">Enter a timeout in minutes first.</string>
+    <string name="bluetooth_off">Bluetooth is off.</string>
+    <string name="permissions_denied">Permissions denied.</string>
+    <string name="not_connected">Not connected.</string>
+    <string name="background_title">Background</string>
+    <string name="background_execution_enabled">Background execution enabled</string>
+    <string name="background_hint">Detects when you start riding and connects to the bike automatically. Uses almost no power until then.</string>
+    <string name="background_permissions_denied">Background execution needs the Physical activity, Nearby devices and Notifications permissions.</string>
+    <string name="notif_channel_name">Bike connection</string>
+    <string name="notif_searching">Looking for your bike…</string>
+    <string name="notif_connected">Connected to your bike</string>
+
+    <!-- Glyphs / placeholders that are not translated -->
+    <string name="placeholder_dash" translatable="false">—</string>
+    <string name="glyph_settings" translatable="false">⚙️</string>
+    <string name="glyph_minus" translatable="false">−</string>
+    <string name="glyph_plus" translatable="false">+</string>
+</resources>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Developer screen and protocol log text. English only on purpose: it is a debugging tool. -->
+<resources>
+    <string name="raw_telemetry_title">Raw telemetry bytes (&gt;&gt; = still unidentified)</string>
+    <string name="raw_hex">Hex</string>
+    <string name="raw_decimal">Decimal</string>
+    <string name="raw_t1_hint" translatable="false">T1 - light/assist/battery/trip/odo (21 bytes):</string>
+    <string name="raw_t9_hint" translatable="false">T9 - ride time/avg/max speed/bt-unlock (16 bytes):</string>
+    <string name="raw_no_t1" translatable="false">No T1 packet yet.</string>
+    <string name="raw_no_t9" translatable="false">No T9 packet yet.</string>
+    <string name="light_title">Light</string>
+    <string name="light_on">On</string>
+    <string name="light_off">Off</string>
+    <string name="nav_startstop_title">Nav start/stop (0xF1)</string>
+    <string name="nav_start">Nav START</string>
+    <string name="nav_stop">Nav STOP</string>
+    <string name="nav_update_title">Nav update</string>
+    <string name="hint_tmp_icon" translatable="false">tmpIconType (current approaching maneuver icon, e.g. 3=right)</string>
+    <string name="hint_cur_retain" translatable="false">curStepRetainDistance (m, counts down)</string>
+    <string name="hint_next_step_dist" translatable="false">nextStepDistance (m, length of this step)</string>
+    <string name="hint_next_icon" translatable="false">nextIconType (icon after this one)</string>
+    <string name="hint_next_next_step_dist" translatable="false">nextNextStepDistance (m)</string>
+    <string name="hint_next_next_icon" translatable="false">nextNextIconType (icon two after this one)</string>
+    <string name="hint_path_retain" translatable="false">pathRetainDistance (m, total route remaining)</string>
+    <string name="nav_preset" translatable="false">Preset: right turn in 200m</string>
+    <string name="nav_send">Send nav update</string>
+    <string name="nav_icon_codes" translatable="false">Icon codes: straight=1 left=2 right=3 slight-left=4 slight-right=5 sharp-left=6 sharp-right=7 uturn=8 complete/none=10</string>
+    <string name="log_title">Log</string>
+    <string name="log_telemetry_checkbox">Show T1/T9 telemetry in log (noisy - several lines/sec)</string>
+    <string name="copy_log">Copy log</string>
+    <string name="clear_log">Clear log</string>
+    <string name="digit_0" translatable="false">0</string>
+    <string name="digit_1" translatable="false">1</string>
+    <string name="digit_2" translatable="false">2</string>
+    <string name="digit_3" translatable="false">3</string>
+    <string name="digit_4" translatable="false">4</string>
+    <string name="digit_5" translatable="false">5</string>
+    <string name="log_light_already_on" translatable="false">Light already on.</string>
+    <string name="log_light_already_off" translatable="false">Light already off.</string>
+    <string name="log_nav_update_error" translatable="false">Nav update error: %1$s</string>
+    <string name="log_copied" translatable="false">Log copied to clipboard.</string>
+    <string name="log_clip_label" translatable="false">EKD01 log</string>
+    <string name="log_scanning" translatable="false">Scanning for %1$s ...</string>
+    <string name="log_found" translatable="false">Found %1$s, connecting...</string>
+    <string name="log_scan_failed" translatable="false">Scan failed: %1$d</string>
+    <string name="log_disconnected" translatable="false">Disconnected.</string>
+    <string name="log_connected_discovering" translatable="false">Connected, discovering services...</string>
+    <string name="log_link_dropped" translatable="false">Link dropped.</string>
+    <string name="log_uart_not_found" translatable="false">UART service not found.</string>
+    <string name="log_services_discovered" translatable="false">Services discovered, authenticating...</string>
+    <string name="log_notifications_enabled" translatable="false">Notifications enabled, sending HELLO.</string>
+    <string name="log_auth_accepted" translatable="false">AUTH accepted.</string>
+    <string name="log_auth_rejected" translatable="false">AUTH REJECTED (%1$s).</string>
+    <string name="log_background_registered" translatable="false">Background: activity transitions registered.</string>
+    <string name="log_background_register_failed" translatable="false">Background: registration failed: %1$s</string>
+    <string name="log_background_unregistered" translatable="false">Background: activity transitions unregistered.</string>
+    <string name="log_background_trigger" translatable="false">Background: %1$s detected, looking for the bike.</string>
+</resources>
