@@ -26,8 +26,10 @@ CRC16 = `~sum(LEN … last DATA byte) & 0xFFFF`. All 280 frames in the capture v
 1. Phone sends HELLO (`10`, CMD `01`, ARG `00`, data `04`). The display replies with a 4-byte challenge.
 2. Phone sends AUTH (`10`, CMD `20`, ARG `00`) with the 16-byte reply below. The ack carries 1 status byte:
    `00` = accepted, non-zero = rejected.
-3. Phone sends three time-sync writes to `10` (CMD `02`): ARG `3E` = local time as epoch (UTC epoch minus tz offset),
-   ARG `42` = tz offset in seconds (3600), ARG `46` = UTC epoch. Each is a 4-byte LE value.
+3. Phone sends three time-sync writes to `10` (CMD `02`), each a 4-byte LE value: ARG `3E` = UTC epoch,
+   ARG `42` = UTC offset in seconds (3600 in Budapest in winter, DST included), ARG `46` = local time as an epoch
+   (UTC + offset). The display shows the ARG `46` value, so it must be local time. Sending plain UTC there makes the
+   display show UTC. (Which of the three the display uses is inferred, not verified in the capture.)
 4. The display then sends telemetry about once a second.
 
 BikeGo also reads A5/18 (device name, e.g. `EKD01_TB_N22`), A5/88, A5/E0 and F1/01 (26-byte settings block)

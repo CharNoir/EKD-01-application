@@ -1,6 +1,7 @@
 package com.adilet.ekd01
 
 import java.util.Locale
+import java.util.TimeZone
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
@@ -63,12 +64,20 @@ object Protocol {
 
     fun authFrame(challenge4: ByteArray) = build(PHONE, DISPLAY, 0x20, 0x00, computeAuthReply(challenge4))
 
-    /** Three writes to DISPLAY: local-time-as-UTC, tz offset, UTC epoch (args 3E / 42 / 46). */
-    fun timeSyncFrames(nowEpochSeconds: Long, tzOffsetSeconds: Long = 3600): List<ByteArray> = listOf(
-        build(PHONE, DISPLAY, 0x02, 0x3E, leBytes(nowEpochSeconds - tzOffsetSeconds, 4)),
+    /**
+     * Three writes to DISPLAY (args 3E / 42 / 46), each a 4-byte LE value:
+     * UTC epoch, the phone's current UTC offset in seconds (DST included), and the LOCAL time as an
+     * epoch (UTC + offset). The display shows the local one, so it must not be plain UTC.
+     */
+    fun timeSyncFrames(utcEpochSeconds: Long, tzOffsetSeconds: Long = localOffsetSeconds(utcEpochSeconds)): List<ByteArray> = listOf(
+        build(PHONE, DISPLAY, 0x02, 0x3E, leBytes(utcEpochSeconds, 4)),
         build(PHONE, DISPLAY, 0x02, 0x42, leBytes(tzOffsetSeconds, 4)),
-        build(PHONE, DISPLAY, 0x02, 0x46, leBytes(nowEpochSeconds, 4))
+        build(PHONE, DISPLAY, 0x02, 0x46, leBytes(utcEpochSeconds + tzOffsetSeconds, 4))
     )
+
+    /** The phone's UTC offset at the given moment, in seconds (3600 in Budapest in winter, 7200 in summer). */
+    fun localOffsetSeconds(utcEpochSeconds: Long): Long =
+        TimeZone.getDefault().getOffset(utcEpochSeconds * 1000) / 1000L
 
     // ---- Settings (DST = SETTINGS, CMD 02 write / 01 read) ---------------------------------
 
