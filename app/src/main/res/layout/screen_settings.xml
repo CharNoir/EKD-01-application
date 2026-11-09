@@ -12,7 +12,10 @@
         android:padding="12dp">
 
         <LinearLayout style="@style/CardContainer">
-            <Button android:id="@+id/backBtn" style="@style/AmberButton" android:text="@string/back" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <Button android:id="@+id/backBtn" style="@style/AmberButton.Row" android:text="@string/back" />
+                <Button android:id="@+id/historyBtn" style="@style/AmberButton.Row" android:layout_marginStart="8dp" android:text="@string/history_button" />
+            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">

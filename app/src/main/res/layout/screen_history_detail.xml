@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/page_bg">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <LinearLayout style="@style/CardContainer">
+            <Button android:id="@+id/backBtn" style="@style/AmberButton" android:text="@string/back" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/detailHeader"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="@string/history_samples_title" />
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <TextView android:id="@+id/detailSamples" style="@style/MonoText" />
+            </HorizontalScrollView>
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

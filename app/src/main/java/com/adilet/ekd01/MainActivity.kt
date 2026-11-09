@@ -54,8 +54,12 @@ private fun formatRawBytes(data: ByteArray, known: Map<Int, String>, hex: Boolea
 
 class MainActivity : AppCompatActivity() {
 
-    private enum class Screen { MAIN, SETTINGS, DEVELOPER }
+    private enum class Screen { MAIN, SETTINGS, DEVELOPER, HISTORY, HISTORY_DETAIL }
     private var currentScreen: Screen = Screen.MAIN
+
+    // History screens: which ride is open, and a thread for database reads.
+    private var selectedSessionId: Long = -1
+    private val dbExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
     // The BLE connection itself lives in BikeLink (shared with the background BikeService).
     // Telemetry and log are read from there; this activity only renders them.
@@ -168,7 +172,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (currentScreen != Screen.MAIN) navigateTo(Screen.MAIN) else super.onBackPressed()
+        when (currentScreen) {
+            Screen.MAIN -> super.onBackPressed()
+            Screen.HISTORY_DETAIL -> navigateTo(Screen.HISTORY)
+            Screen.HISTORY -> navigateTo(Screen.SETTINGS)
+            else -> navigateTo(Screen.MAIN)
+        }
     }
 
     private fun navigateTo(screen: Screen) {
@@ -178,6 +187,8 @@ class MainActivity : AppCompatActivity() {
                 Screen.MAIN -> buildMainScreen()
                 Screen.SETTINGS -> buildSettingsScreen()
                 Screen.DEVELOPER -> buildDeveloperScreen()
+                Screen.HISTORY -> buildHistoryScreen()
+                Screen.HISTORY_DETAIL -> buildHistoryDetailScreen()
             }
         )
     }
@@ -358,6 +369,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        root.findViewById<Button>(R.id.historyBtn).setOnClickListener { navigateTo(Screen.HISTORY) }
         root.findViewById<Button>(R.id.developerNavBtn).setOnClickListener { navigateTo(Screen.DEVELOPER) }
 
         return root
@@ -476,6 +488,107 @@ class MainActivity : AppCompatActivity() {
         return root
     }
 
+    // ---------- History screens: recorded rides (res/layout/screen_history*.xml, item_session.xml) ----------
+
+    private fun buildHistoryScreen(): View {
+        val root = layoutInflater.inflate(R.layout.screen_history, null)
+        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.SETTINGS) }
+        val list = root.findViewById<LinearLayout>(R.id.historyList)
+        val empty = root.findViewById<TextView>(R.id.historyEmpty)
+        dbExecutor.execute {
+            val sessions: List<SessionRow> = try {
+                RideDb.get(this).loadSessions()
+            } catch (e: Exception) {
+                BikeLink.logDbError(e.message ?: e.javaClass.simpleName)
+                emptyList()
+            }
+            runOnUiThread {
+                if (isDestroyed || currentScreen != Screen.HISTORY) return@runOnUiThread
+                empty.visibility = if (sessions.isEmpty()) View.VISIBLE else View.GONE
+                for (s in sessions) {
+                    val item = buildSessionItem(s, list)
+                    item.setOnClickListener { selectedSessionId = s.id; navigateTo(Screen.HISTORY_DETAIL) }
+                    list.addView(item)
+                }
+            }
+        }
+        return root
+    }
+
+    private fun buildHistoryDetailScreen(): View {
+        val root = layoutInflater.inflate(R.layout.screen_history_detail, null)
+        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.HISTORY) }
+        val header = root.findViewById<LinearLayout>(R.id.detailHeader)
+        val samplesView = root.findViewById<TextView>(R.id.detailSamples)
+        val sessionId = selectedSessionId
+        dbExecutor.execute {
+            var session: SessionRow? = null
+            var samples: List<SampleRow> = emptyList()
+            try {
+                val db = RideDb.get(this)
+                session = db.loadSession(sessionId)
+                samples = db.loadSamples(sessionId)
+            } catch (e: Exception) {
+                BikeLink.logDbError(e.message ?: e.javaClass.simpleName)
+            }
+            runOnUiThread {
+                if (isDestroyed || currentScreen != Screen.HISTORY_DETAIL) return@runOnUiThread
+                session?.let { header.addView(buildSessionItem(it, header)) }
+                samplesView.text = if (samples.isEmpty()) getString(R.string.history_no_samples)
+                else samples.joinToString("\n") { formatSample(it) }
+            }
+        }
+        return root
+    }
+
+    private fun percentText(value: Int?): String = value?.let { getString(R.string.battery_percent, it) } ?: dash
+
+    /** A ride summary card (not clickable by itself; the list adds the click). */
+    private fun buildSessionItem(s: SessionRow, parent: android.view.ViewGroup): View {
+        val item = layoutInflater.inflate(R.layout.item_session, parent, false)
+        val dateFormat = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
+        item.findViewById<TextView>(R.id.sessionTitle).text = dateFormat.format(java.util.Date(s.connectedAt))
+
+        val end = s.disconnectedAt
+        item.findViewById<TextView>(R.id.sessionDuration).text =
+            if (end == null) getString(R.string.history_ongoing)
+            else getString(R.string.history_duration, formatDuration(((end - s.connectedAt) / 1000).toInt()))
+
+        item.findViewById<TextView>(R.id.sessionBattery).text =
+            getString(R.string.history_battery, percentText(s.batteryStart), percentText(s.batteryEnd))
+
+        val distance = item.findViewById<TextView>(R.id.sessionDistance)
+        val odoStart = s.odoStartKm
+        val odoEnd = s.odoEndKm
+        if (odoStart != null && odoEnd != null) {
+            distance.text = getString(R.string.history_distance, odoEnd - odoStart, odoEnd)
+        } else {
+            distance.visibility = View.GONE
+        }
+
+        if (s.chargeDetected) {
+            item.findViewById<TextView>(R.id.sessionCharged).apply {
+                text = getString(R.string.history_charged, percentText(s.prevBatteryEnd), percentText(s.batteryStart))
+                visibility = View.VISIBLE
+            }
+        }
+        item.isClickable = false
+        return item
+    }
+
+    private fun formatSample(r: SampleRow): String {
+        val time = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(r.ts))
+        val line = getString(
+            R.string.history_sample_line,
+            time,
+            percentText(r.batteryPct),
+            r.speedKmh?.let { "%.1f".format(it) } ?: dash,
+            r.odoKm?.let { "%.1f".format(it) } ?: dash,
+            r.tripKm?.let { "%.2f".format(it) } ?: dash
+        )
+        return if (r.status == "disconnected") line + "  " + getString(R.string.history_disconnected_marker) else line
+    }
+
     // ---------- Shared small helpers ----------
 
     private fun updateRawViews() {
@@ -509,6 +622,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         BikeLink.removeListener(linkListener)
+        dbExecutor.shutdown()
         // Leaving the app drops a connection started here, as before. A connection kept alive by
         // the background service is left alone, and a rotation does not disconnect either.
         if (isFinishing && !BikeService.isRunning) BikeLink.disconnect()

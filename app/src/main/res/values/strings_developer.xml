@@ -55,4 +55,5 @@
     <string name="log_background_register_failed" translatable="false">Background: registration failed: %1$s</string>
     <string name="log_background_unregistered" translatable="false">Background: activity transitions unregistered.</string>
     <string name="log_background_trigger" translatable="false">Background: %1$s detected, looking for the bike.</string>
+    <string name="log_db_error" translatable="false">Database error: %1$s</string>
 </resources>

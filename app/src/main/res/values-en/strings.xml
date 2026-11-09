@@ -58,4 +58,16 @@
     <string name="notif_channel_name">Bike connection</string>
     <string name="notif_searching">Looking for your bike…</string>
     <string name="notif_connected">Connected to your bike</string>
+    <string name="history_button">History</string>
+    <string name="history_title">Ride history</string>
+    <string name="history_empty">No rides recorded yet.</string>
+    <string name="history_ongoing">Connected now</string>
+    <string name="history_duration">Duration: %1$s</string>
+    <string name="history_battery">Battery: %1$s → %2$s</string>
+    <string name="history_distance">Rode %1$.2f km · odometer %2$.1f km</string>
+    <string name="history_charged">⚡ Charged since the previous ride (%1$s → %2$s)</string>
+    <string name="history_samples_title">Readings (one per minute)</string>
+    <string name="history_no_samples">No readings recorded.</string>
+    <string name="history_sample_line">%1$s  %2$s  %3$s km/h  odo %4$s km  trip %5$s km</string>
+    <string name="history_disconnected_marker">(disconnected)</string>
 </resources>

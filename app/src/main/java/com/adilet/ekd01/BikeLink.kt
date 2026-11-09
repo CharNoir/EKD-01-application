@@ -84,7 +84,10 @@ object BikeLink {
     private var scanFinished: ((Boolean) -> Unit)? = null
 
     fun init(context: Context) {
-        if (!::appContext.isInitialized) appContext = context.applicationContext
+        if (!::appContext.isInitialized) {
+            appContext = context.applicationContext
+            BikeRecorder.start(appContext)
+        }
     }
 
     fun addListener(l: Listener) { listeners.addIfAbsent(l) }
@@ -104,11 +107,14 @@ object BikeLink {
 
     fun clearLog() { logBuffer.clear() }
 
+    fun logDbError(message: String) = log(str(R.string.log_db_error, message))
+
     private fun str(id: Int, vararg args: Any): String = appContext.getString(id, *args)
 
     private fun setState(s: State) {
         if (state == s) return
         state = s
+        BikeRecorder.onState(s)
         main.post { listeners.forEach { it.onStateChanged(s) } }
     }
 
@@ -319,6 +325,7 @@ object BikeLink {
                     if (t1 != null) {
                         lastT1 = t1
                         lastT1Raw = f.data
+                        BikeRecorder.onTelemetry1(t1)
                         main.post { listeners.forEach { it.onTelemetry1(t1) } }
                         if (showTelemetryLog) {
                             log("T1  light=${t1.light} assist=${t1.assistLevel} batt=${t1.batteryPct}% speed=${t1.speedKmh}km/h trip=${t1.tripKm}km odo=${t1.odometerKm}km")
@@ -326,6 +333,7 @@ object BikeLink {
                     } else if (t9 != null) {
                         lastT9 = t9
                         lastT9Raw = f.data
+                        BikeRecorder.onTelemetry9(t9)
                         main.post { listeners.forEach { it.onTelemetry9(t9) } }
                         if (showTelemetryLog) {
                             log("T9  rideTime=${t9.rideTimeS}s avg=${t9.avgKmh}km/h max=${t9.maxKmh}km/h btUnlock=${t9.btUnlockLevel}")

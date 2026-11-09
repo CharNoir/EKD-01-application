@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/CardContainer"
+    android:clickable="true"
+    android:focusable="true">
+
+    <TextView android:id="@+id/sessionTitle" style="@style/CardTitle" />
+    <TextView android:id="@+id/sessionDuration" style="@style/BodyText" />
+    <TextView android:id="@+id/sessionBattery" style="@style/BodyText" />
+    <TextView android:id="@+id/sessionDistance" style="@style/BodyText" />
+    <TextView
+        android:id="@+id/sessionCharged"
+        style="@style/BodyText"
+        android:textColor="@color/accent_text"
+        android:visibility="gone" />
+</LinearLayout>
