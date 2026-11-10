@@ -20,6 +20,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
+        <TextView style="@style/CardTitle" android:paddingStart="4dp" android:text="@string/charts_title" />
+        <LinearLayout
+            android:id="@+id/chartList"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
         <LinearLayout style="@style/CardContainer">
             <TextView style="@style/CardTitle" android:text="@string/history_samples_title" />
             <HorizontalScrollView

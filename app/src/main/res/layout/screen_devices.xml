@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/page_bg">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <LinearLayout style="@style/CardContainer">
+            <Button android:id="@+id/backBtn" style="@style/AmberButton" android:text="@string/back" />
+        </LinearLayout>
+
+        <TextView style="@style/CardTitle" android:paddingStart="4dp" android:text="@string/devices_title" />
+        <TextView
+            style="@style/HintText"
+            android:paddingStart="4dp"
+            android:paddingBottom="8dp"
+            android:text="@string/devices_hint" />
+        <TextView
+            android:id="@+id/devicesEmpty"
+            style="@style/HintText"
+            android:visibility="gone"
+            android:paddingStart="4dp"
+            android:paddingBottom="8dp"
+            android:text="@string/devices_empty" />
+
+        <LinearLayout
+            android:id="@+id/deviceList"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="@string/devices_add_title" />
+            <Button android:id="@+id/scanBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/devices_scan" />
+            <TextView android:id="@+id/scanStatus" style="@style/HintText" android:paddingTop="6dp" android:visibility="gone" />
+            <LinearLayout
+                android:id="@+id/foundList"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

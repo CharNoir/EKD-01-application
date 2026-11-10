@@ -15,10 +15,11 @@ import com.google.android.gms.location.ActivityTransitionRequest
 import com.google.android.gms.location.DetectedActivity
 
 /**
- * Background mode: while enabled, Google Play services watches the phone's motion sensors in a
- * very low-power way and wakes [ActivityTransitionReceiver] when you start travelling in a vehicle
- * or on a bicycle. The receiver starts [BikeService], which looks for the display and connects.
- * Nothing of ours runs between those events.
+ * Background mode: while enabled, [BikeService] runs all the time (small notification), is started again
+ * after a reboot or app update ([BootReceiver]) and when the app is opened, and keeps a background
+ * connect request to the bike pending, so the link comes up as soon as the display is switched on.
+ * As a backstop, Google Play services also watches for you starting to travel in a vehicle or on a
+ * bicycle and wakes [ActivityTransitionReceiver], which restarts the service and does a scan.
  */
 object BackgroundMode {
 
@@ -31,11 +32,28 @@ object BackgroundMode {
 
     fun isEnabled(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_ENABLED, false)
 
-    /** Address of the display from the last successful connection; lets background scans use a hardware filter. */
+    /** Address of the selected bike (the one that is scanned for, waited for and shown in History). Null = none chosen yet. */
     fun savedAddress(ctx: Context): String? = prefs(ctx).getString(KEY_ADDRESS, null)
 
     fun saveAddress(ctx: Context, address: String) {
         prefs(ctx).edit().putString(KEY_ADDRESS, address).apply()
+    }
+
+    /** Makes [address] the selected bike: drops any link to the previous one and, in background mode, starts waiting for the new one. */
+    fun selectBike(ctx: Context, address: String) {
+        BikeLink.init(ctx)
+        if (address.equals(savedAddress(ctx), ignoreCase = true)) return
+        saveAddress(ctx, address)
+        BikeLink.dropForBikeChange()
+        if (isEnabled(ctx)) BikeService.start(ctx, rearm = true)
+    }
+
+    /** The selected bike was forgotten. */
+    fun clearSelectedBike(ctx: Context) {
+        BikeLink.init(ctx)
+        prefs(ctx).edit().remove(KEY_ADDRESS).apply()
+        BikeLink.dropForBikeChange()
+        if (isEnabled(ctx)) BikeService.start(ctx, rearm = true)
     }
 
     /** Persists the setting and (un)registers the transition updates. Permissions must already be granted. */
@@ -44,6 +62,7 @@ object BackgroundMode {
         prefs(ctx).edit().putBoolean(KEY_ENABLED, enabled).apply()
         if (enabled) {
             register(ctx)
+            BikeService.start(ctx)
         } else {
             unregister(ctx)
             if (BikeService.isRunning) {

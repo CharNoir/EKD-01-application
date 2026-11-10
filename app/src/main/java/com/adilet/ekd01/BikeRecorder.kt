@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 
 /**
  * Writes ride history to [RideDb]. Fed directly by [BikeLink] (state changes and telemetry); all
@@ -11,7 +12,7 @@ import android.os.HandlerThread
  *
  * - CONNECTED: opens a session; the first telemetry packet writes the first sample and checks
  *   whether the battery was charged since the previous session.
- * - While connected: one sample per minute.
+ * - While connected: one sample every N seconds (Settings, default 60).
  * - DISCONNECTED (link lost, tapped, or the app was closed): writes a last sample with the last
  *   known values and status 'disconnected', and closes the session.
  * - If the process is killed without a disconnect event, the session is closed at the next app
@@ -19,7 +20,11 @@ import android.os.HandlerThread
  */
 object BikeRecorder {
 
-    private const val SAMPLE_INTERVAL_MS = 60_000L
+    private const val PREFS = "ekd01_prefs"
+    private const val KEY_INTERVAL_S = "record_interval_s"
+    const val DEFAULT_INTERVAL_S = 60
+    const val MIN_INTERVAL_S = 1
+    const val MAX_INTERVAL_S = 3600
 
     /** A battery percentage this many points higher than at the end of the previous session counts as "charged". */
     const val CHARGE_JUMP_PCT = 15
@@ -28,11 +33,13 @@ object BikeRecorder {
     private const val DISCONNECTED = "disconnected"
 
     private lateinit var db: RideDb
+    private lateinit var appContext: Context
     private lateinit var handler: Handler
     @Volatile private var started = false
 
     // Everything below is touched only on the recorder thread.
     private var sessionId = -1L
+    private var sessionAddress: String? = null
     private var t1: Protocol.Telemetry1? = null
     private var t9: Protocol.Telemetry9? = null
     private var firstT1Seen = false
@@ -41,13 +48,34 @@ object BikeRecorder {
         override fun run() {
             if (sessionId < 0) return
             guarded { writeSample(CONNECTED) }
-            handler.postDelayed(this, SAMPLE_INTERVAL_MS)
+            handler.postDelayed(this, intervalMs())
         }
     }
+
+    /** Seconds between saved readings while connected. */
+    fun intervalSeconds(context: Context): Int =
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getInt(KEY_INTERVAL_S, DEFAULT_INTERVAL_S).coerceIn(MIN_INTERVAL_S, MAX_INTERVAL_S)
+
+    /** Saves the interval (clamped to 1..3600 s); takes effect right away, also for a ride in progress. */
+    fun setIntervalSeconds(context: Context, seconds: Int) {
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_INTERVAL_S, seconds.coerceIn(MIN_INTERVAL_S, MAX_INTERVAL_S)).apply()
+        if (!started) return
+        handler.post {
+            if (sessionId >= 0) {
+                handler.removeCallbacks(tick)
+                handler.postDelayed(tick, intervalMs())
+            }
+        }
+    }
+
+    private fun intervalMs(): Long = intervalSeconds(appContext) * 1000L
 
     fun start(context: Context) {
         if (started) return
         started = true
+        appContext = context.applicationContext
         db = RideDb.get(context)
         val thread = HandlerThread("bike-recorder").apply { start() }
         handler = Handler(thread.looper)
@@ -56,10 +84,11 @@ object BikeRecorder {
 
     // ---- Entry points, called by BikeLink on any thread --------------------------------------
 
-    fun onState(state: BikeLink.State) {
+    /** [address] = the bike's Bluetooth address, given with CONNECTED. */
+    fun onState(state: BikeLink.State, address: String? = null) {
         if (!started) return
         when (state) {
-            BikeLink.State.CONNECTED -> handler.post { guarded { beginSession() } }
+            BikeLink.State.CONNECTED -> handler.post { guarded { beginSession(address) } }
             BikeLink.State.DISCONNECTED -> handler.post { guarded { endSession() } }
             BikeLink.State.CONNECTING -> {}
         }
@@ -73,17 +102,33 @@ object BikeRecorder {
         if (started) handler.post { t9 = t }
     }
 
+    /**
+     * Deletes a bike and its history. Runs on the recorder thread, so it comes after any session
+     * write that a just-requested disconnect has queued. [onDone] runs on the main thread.
+     */
+    fun forgetDevice(address: String, onDone: () -> Unit) {
+        handler.post {
+            guarded { db.forgetDevice(address) }
+            Handler(Looper.getMainLooper()).post(onDone)
+        }
+    }
+
     // ---- Recorder thread ---------------------------------------------------------------------
 
-    private fun beginSession() {
+    private fun beginSession(address: String?) {
         if (sessionId >= 0) return
         t1 = null
         t9 = null
         firstT1Seen = false
-        val values = ContentValues().apply { put("connected_at", System.currentTimeMillis()) }
+        sessionAddress = address
+        if (address != null) db.addDevice(address)
+        val values = ContentValues().apply {
+            put("connected_at", System.currentTimeMillis())
+            put("device_address", address)
+        }
         sessionId = db.writableDatabase.insertOrThrow("sessions", null, values)
         handler.removeCallbacks(tick)
-        handler.postDelayed(tick, SAMPLE_INTERVAL_MS)
+        handler.postDelayed(tick, intervalMs())
     }
 
     private fun handleT1(t: Protocol.Telemetry1) {
@@ -113,9 +158,15 @@ object BikeRecorder {
                 put("battery_end", it.batteryPct)
                 put("odo_end_km", it.odometerKm)
             }
+            t9?.let {
+                put("trip_time_s", it.rideTimeS)
+                put("max_kmh", it.maxKmh)
+                put("avg_kmh", it.avgKmh)
+            }
         }
         db.writableDatabase.update("sessions", values, "id = ?", arrayOf(sessionId.toString()))
         sessionId = -1
+        sessionAddress = null
         t1 = null
         t9 = null
     }
@@ -140,12 +191,14 @@ object BikeRecorder {
         db.writableDatabase.insertOrThrow("samples", null, values)
     }
 
-    /** Battery percentage at the end of the most recent earlier session that has one. */
-    private fun previousBatteryEnd(): Int? =
-        db.readableDatabase.rawQuery(
-            "SELECT battery_end FROM sessions WHERE id < ? AND battery_end IS NOT NULL ORDER BY id DESC LIMIT 1",
-            arrayOf(sessionId.toString())
-        ).use { if (it.moveToFirst() && !it.isNull(0)) it.getInt(0) else null }
+    /** Battery percentage at the end of the most recent earlier session of the same bike that has one. */
+    private fun previousBatteryEnd(): Int? {
+        val address = sessionAddress
+        val sql = "SELECT battery_end FROM sessions WHERE id < ? AND battery_end IS NOT NULL" +
+            (if (address != null) " AND device_address = ?" else "") + " ORDER BY id DESC LIMIT 1"
+        val args = if (address != null) arrayOf(sessionId.toString(), address) else arrayOf(sessionId.toString())
+        return db.readableDatabase.rawQuery(sql, args).use { if (it.moveToFirst() && !it.isNull(0)) it.getInt(0) else null }
+    }
 
     /** Closes sessions left open by a killed process, using their last sample as the end. */
     private fun closeOrphanSessions() {
@@ -156,7 +209,7 @@ object BikeRecorder {
         }
         for (id in open) {
             database.rawQuery(
-                "SELECT ts, battery_pct, odo_km FROM samples WHERE session_id = ? ORDER BY ts DESC LIMIT 1",
+                "SELECT ts, battery_pct, odo_km, trip_time_s, trip_max_kmh, trip_avg_kmh FROM samples WHERE session_id = ? ORDER BY ts DESC LIMIT 1",
                 arrayOf(id.toString())
             ).use { c ->
                 val values = ContentValues()
@@ -164,6 +217,9 @@ object BikeRecorder {
                     values.put("disconnected_at", c.getLong(0))
                     if (!c.isNull(1)) values.put("battery_end", c.getInt(1))
                     if (!c.isNull(2)) values.put("odo_end_km", c.getDouble(2))
+                    if (!c.isNull(3)) values.put("trip_time_s", c.getInt(3))
+                    if (!c.isNull(4)) values.put("max_kmh", c.getDouble(4))
+                    if (!c.isNull(5)) values.put("avg_kmh", c.getDouble(5))
                 } else {
                     values.put("disconnected_at", System.currentTimeMillis())
                 }

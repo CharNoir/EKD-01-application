@@ -16,6 +16,7 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -74,6 +75,23 @@ object BikeLink {
     val logBuffer = StringBuilder()
 
     @Volatile private var gatt: BluetoothGatt? = null
+
+    /** True while [gatt] is a background (autoConnect) request that has not connected yet. */
+    @Volatile private var autoPending = false
+
+    /** Bluetooth address of the bike we are connected to (set when authenticated, cleared on disconnect). */
+    @Volatile var connectedAddress: String? = null
+        private set
+
+    /** A bike found by [discoverDevices]. */
+    data class Discovered(val address: String, val name: String, val rssi: Int)
+
+    /** True while waiting in the background for the bike to appear. */
+    val isArmed: Boolean get() = autoPending
+
+    /** When the user last tapped "disconnect" (SystemClock.elapsedRealtime), so the service can tell that from a lost link. */
+    @Volatile var lastManualDisconnectAt = -1_000_000L
+        private set
     @Volatile private var parser = Protocol.FrameParser()
     private val writeQueue = ConcurrentLinkedQueue<ByteArray>()
     @Volatile private var writeInFlight = false
@@ -82,6 +100,12 @@ object BikeLink {
     private var scanCallback: ScanCallback? = null
     private var scanTimeout: Runnable? = null
     private var scanFinished: ((Boolean) -> Unit)? = null
+
+    private var discoverScanner: BluetoothLeScanner? = null
+    private var discoverCallback: ScanCallback? = null
+    private var discoverTimeout: Runnable? = null
+    private var discoverDone: (() -> Unit)? = null
+    val isDiscovering: Boolean get() = discoverCallback != null
 
     fun init(context: Context) {
         if (!::appContext.isInitialized) {
@@ -114,7 +138,7 @@ object BikeLink {
     private fun setState(s: State) {
         if (state == s) return
         state = s
-        BikeRecorder.onState(s)
+        BikeRecorder.onState(s, connectedAddress)
         main.post { listeners.forEach { it.onStateChanged(s) } }
     }
 
@@ -131,6 +155,7 @@ object BikeLink {
      */
     @SuppressLint("MissingPermission")
     fun scanAndConnect(timeoutMs: Long, filtered: Boolean, onFinished: ((found: Boolean) -> Unit)? = null) {
+        if (autoPending) cancelAutoConnect()
         if (gatt != null || scanCallback != null) {
             if (onFinished != null) main.post { onFinished(gatt != null) }
             return
@@ -150,10 +175,12 @@ object BikeLink {
             return
         }
 
+        // With a bike selected, only that bike counts. Without one, any display with the right name does.
+        val active = BackgroundMode.savedAddress(appContext)
         val filters = if (filtered) {
             buildList<ScanFilter> {
-                BackgroundMode.savedAddress(appContext)?.let { add(ScanFilter.Builder().setDeviceAddress(it).build()) }
-                add(ScanFilter.Builder().setDeviceName(DEVICE_NAME).build())
+                if (active != null) add(ScanFilter.Builder().setDeviceAddress(active).build())
+                else add(ScanFilter.Builder().setDeviceName(DEVICE_NAME).build())
             }
         } else emptyList()
         val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
@@ -170,7 +197,10 @@ object BikeLink {
                 if (!filtered && seen.add(addr)) {
                     log("seen: name=${name ?: "(null)"} addr=$addr rssi=${result.rssi}")
                 }
-                val match = filtered || (name != null && name.trim().equals(DEVICE_NAME, ignoreCase = true))
+                val match = when {
+                    active != null -> addr.equals(active, ignoreCase = true)
+                    else -> filtered || (name != null && name.trim().equals(DEVICE_NAME, ignoreCase = true))
+                }
                 if (match && handled.compareAndSet(false, true)) {
                     stopScanInternal()
                     log(str(R.string.log_found, DEVICE_NAME))
@@ -230,16 +260,140 @@ object BikeLink {
         gatt = device.connectGatt(appContext, false, gattCallback)
     }
 
-    /** Cancels a scan or connection in progress, or drops the live link. */
+    /** Connects straight to the bike with this address (foreground connect, no scan). False if it could not be started. */
     @SuppressLint("MissingPermission")
-    fun disconnect() {
+    fun connectToAddress(address: String): Boolean {
+        if (autoPending) cancelAutoConnect()
+        if (gatt != null || scanCallback != null) return false
+        val adapter = appContext.getSystemService(BluetoothManager::class.java)?.adapter
+        if (adapter == null || !adapter.isEnabled) {
+            log(str(R.string.bluetooth_off))
+            return false
+        }
+        return try {
+            val device = adapter.getRemoteDevice(address)
+            log(str(R.string.log_connecting_to, address))
+            setState(State.CONNECTING)
+            connectTo(device)
+            true
+        } catch (e: Exception) {
+            gatt = null
+            setState(State.DISCONNECTED)
+            false
+        }
+    }
+
+    /**
+     * Scans for nearby displays (by name) and reports each one once through [onFound]; [onDone] runs
+     * when the scan ends by itself (timeout or failure), not when [stopDiscovery] cancels it. Both run
+     * on the main thread. Returns false if the scan could not be started.
+     */
+    @SuppressLint("MissingPermission")
+    fun discoverDevices(timeoutMs: Long, onFound: (Discovered) -> Unit, onDone: () -> Unit): Boolean {
+        if (isDiscovering) stopDiscovery()
+        val adapter = appContext.getSystemService(BluetoothManager::class.java)?.adapter
+        val leScanner = if (adapter != null && adapter.isEnabled) adapter.bluetoothLeScanner else null
+        if (leScanner == null) {
+            log(str(R.string.bluetooth_off))
+            return false
+        }
+        val seen = mutableSetOf<String>()
+        val cb = object : ScanCallback() {
+            override fun onScanResult(callbackType: Int, result: ScanResult) {
+                val name = result.device.name?.trim() ?: return
+                if (!name.equals(DEVICE_NAME, ignoreCase = true)) return
+                if (seen.add(result.device.address)) onFound(Discovered(result.device.address, name, result.rssi))
+            }
+
+            override fun onScanFailed(errorCode: Int) {
+                log(str(R.string.log_scan_failed, errorCode))
+                finishDiscovery(notify = true)
+            }
+        }
+        discoverScanner = leScanner
+        discoverCallback = cb
+        discoverDone = onDone
+        val timeout = Runnable { finishDiscovery(notify = true) }
+        discoverTimeout = timeout
+        main.postDelayed(timeout, timeoutMs)
+        return try {
+            leScanner.startScan(null, ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(), cb)
+            true
+        } catch (e: SecurityException) {
+            finishDiscovery(notify = false)
+            false
+        }
+    }
+
+    fun stopDiscovery() = finishDiscovery(notify = false)
+
+    @SuppressLint("MissingPermission")
+    private fun finishDiscovery(notify: Boolean) {
+        discoverTimeout?.let { main.removeCallbacks(it) }
+        discoverTimeout = null
+        val cb = discoverCallback
+        discoverCallback = null
+        if (cb != null) try { discoverScanner?.stopScan(cb) } catch (_: Exception) {}
+        discoverScanner = null
+        val done = discoverDone
+        discoverDone = null
+        if (notify) done?.invoke()
+    }
+
+    /** The selected bike changed: drop whatever link, wait or scan belongs to the old one and forget its readings. */
+    fun dropForBikeChange() {
+        disconnect()
+        lastT1 = null
+        lastT9 = null
+        lastT1Raw = null
+        lastT9Raw = null
+    }
+
+    /**
+     * Waits for the bike without scanning: asks the Bluetooth controller to connect as soon as the
+     * display with the saved address appears (GATT autoConnect). The controller does the waiting, so
+     * this costs almost no power, and it works for as long as this process and Bluetooth are alive.
+     * Returns false if it could not be armed (no saved address yet, Bluetooth off, permission missing).
+     */
+    @SuppressLint("MissingPermission")
+    fun armAutoConnect(): Boolean {
+        if (gatt != null || scanCallback != null) return autoPending
+        val address = BackgroundMode.savedAddress(appContext) ?: return false
+        val adapter = appContext.getSystemService(BluetoothManager::class.java)?.adapter
+        if (adapter == null || !adapter.isEnabled) return false
+        return try {
+            autoPending = true
+            gatt = adapter.getRemoteDevice(address).connectGatt(appContext, true, gattCallback)
+            log(str(R.string.log_auto_armed))
+            true
+        } catch (e: Exception) {
+            autoPending = false
+            gatt = null
+            false
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun cancelAutoConnect() {
+        val g = gatt
+        gatt = null
+        autoPending = false
+        if (g != null) try { g.disconnect(); g.close() } catch (_: Exception) {}
+    }
+
+    /** Cancels a scan or connection in progress, or drops the live link. [manual] = the user asked for it. */
+    @SuppressLint("MissingPermission")
+    fun disconnect(manual: Boolean = false) {
+        if (manual) lastManualDisconnectAt = SystemClock.elapsedRealtime()
         stopScanInternal()
+        autoPending = false
         val g = gatt
         gatt = null
         if (g != null) try { g.disconnect(); g.close() } catch (_: Exception) {}
         writeQueue.clear()
         writeInFlight = false
         parser = Protocol.FrameParser()
+        connectedAddress = null
         setState(State.DISCONNECTED)
         log(str(R.string.log_disconnected))
         finishScan(false)
@@ -251,15 +405,18 @@ object BikeLink {
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
+                autoPending = false
+                setState(State.CONNECTING) // the bike showed up (or the foreground connect succeeded)
                 log(str(R.string.log_connected_discovering))
                 g.discoverServices()
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 log(str(R.string.log_link_dropped))
                 try { g.close() } catch (_: Exception) {}
-                if (gatt === g) gatt = null
+                if (gatt === g) { gatt = null; autoPending = false }
                 writeQueue.clear()
                 writeInFlight = false
                 parser = Protocol.FrameParser()
+                connectedAddress = null
                 setState(State.DISCONNECTED)
             }
         }
@@ -305,7 +462,10 @@ object BikeLink {
                     val ok = f.data.isNotEmpty() && f.data[0].toInt() == 0
                     log(if (ok) str(R.string.log_auth_accepted) else str(R.string.log_auth_rejected, Protocol.hex(f.data)))
                     if (ok) {
-                        gatt?.device?.address?.let { BackgroundMode.saveAddress(appContext, it) }
+                        val address = gatt?.device?.address
+                        connectedAddress = address
+                        // First bike ever: it becomes the selected one. Otherwise the selection is the user's choice.
+                        if (address != null && BackgroundMode.savedAddress(appContext) == null) BackgroundMode.saveAddress(appContext, address)
                         setState(State.CONNECTED)
                         val now = System.currentTimeMillis() / 1000
                         for (fr in Protocol.timeSyncFrames(now)) queueWrite(fr)
@@ -379,7 +539,7 @@ object BikeLink {
 
     /** Sends a frame if a link exists, otherwise logs "Not connected." */
     fun send(frame: ByteArray) {
-        if (gatt == null) { log(str(R.string.not_connected)); return }
+        if (gatt == null || autoPending) { log(str(R.string.not_connected)); return }
         queueWrite(frame)
     }
 }

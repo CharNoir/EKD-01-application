@@ -16,6 +16,12 @@
 
         <TextView style="@style/CardTitle" android:paddingStart="4dp" android:text="@string/history_title" />
         <TextView
+            android:id="@+id/historyBike"
+            style="@style/BodyText"
+            android:visibility="gone"
+            android:paddingStart="4dp"
+            android:paddingBottom="8dp" />
+        <TextView
             android:id="@+id/historyEmpty"
             style="@style/HintText"
             android:visibility="gone"

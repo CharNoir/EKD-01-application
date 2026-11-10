@@ -8,6 +8,7 @@
     <TextView android:id="@+id/sessionDuration" style="@style/BodyText" />
     <TextView android:id="@+id/sessionBattery" style="@style/BodyText" />
     <TextView android:id="@+id/sessionDistance" style="@style/BodyText" />
+    <TextView android:id="@+id/sessionTrip" style="@style/BodyText" android:visibility="gone" />
     <TextView
         android:id="@+id/sessionCharged"
         style="@style/BodyText"

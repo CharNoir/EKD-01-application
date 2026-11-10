@@ -19,6 +19,13 @@
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="@string/bike_title" />
+            <TextView android:id="@+id/bikeNameLabel" style="@style/BodyText" tools:text="My e-bike" />
+            <TextView android:id="@+id/bikeAddressLabel" style="@style/HintText" tools:text="AA:BB:CC:DD:EE:FF" />
+            <Button android:id="@+id/chooseBikeBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/bike_choose" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
             <TextView style="@style/CardTitle" android:text="@string/bt_unlock_title" />
             <TextView android:id="@+id/btUnlockLabel" style="@style/BodyText" android:textSize="13sp" tools:text="BT unlock level: 1" />
             <SeekBar android:id="@+id/btUnlockSlider" style="@style/AmberSlider" android:min="1" android:max="5" />
@@ -48,6 +55,13 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/text_primary"
                 android:text="@string/show_battery_percent" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="@string/record_title" />
+            <TextView android:id="@+id/recordIntervalLabel" style="@style/BodyText" android:textSize="13sp" />
+            <EditText android:id="@+id/recordIntervalInput" style="@style/StyledEditText" android:hint="@string/record_interval_hint" android:inputType="number" />
+            <Button android:id="@+id/setRecordIntervalBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/record_interval_set" />
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">

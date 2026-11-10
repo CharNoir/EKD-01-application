@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/CardContainer"
+    android:clickable="true"
+    android:focusable="true">
+
+    <TextView android:id="@+id/deviceName" style="@style/CardTitle" />
+    <TextView
+        android:id="@+id/deviceActive"
+        style="@style/BodyText"
+        android:textColor="@color/accent_text"
+        android:text="@string/device_active"
+        android:visibility="gone" />
+    <TextView android:id="@+id/deviceAddress" style="@style/HintText" />
+    <TextView android:id="@+id/deviceInfo" style="@style/BodyText" />
+
+    <LinearLayout
+        android:id="@+id/deviceButtons"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <Button android:id="@+id/renameBtn" style="@style/AmberButton.Row" android:text="@string/device_rename" />
+        <Button android:id="@+id/forgetBtn" style="@style/AmberButton.Row" android:layout_marginStart="8dp" android:text="@string/device_forget" />
+    </LinearLayout>
+</LinearLayout>

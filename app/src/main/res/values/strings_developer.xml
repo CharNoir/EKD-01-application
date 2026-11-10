@@ -56,4 +56,8 @@
     <string name="log_background_unregistered" translatable="false">Background: activity transitions unregistered.</string>
     <string name="log_background_trigger" translatable="false">Background: %1$s detected, looking for the bike.</string>
     <string name="log_db_error" translatable="false">Database error: %1$s</string>
+    <string name="log_auto_armed" translatable="false">Waiting for the bike (background connect).</string>
+    <string name="log_connecting_to" translatable="false">Connecting to %1$s</string>
+    <string name="log_service_start_failed" translatable="false">BikeService could not start: %1$s</string>
+    <string name="log_service_foreground_refused" translatable="false">BikeService foreground start refused: %1$s</string>
 </resources>

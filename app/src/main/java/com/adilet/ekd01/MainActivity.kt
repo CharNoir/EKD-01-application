@@ -1,11 +1,18 @@
 package com.adilet.ekd01
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.text.InputFilter
+import android.text.InputType
+import android.provider.Settings
 import android.view.View
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.widget.NestedScrollView
@@ -54,8 +61,13 @@ private fun formatRawBytes(data: ByteArray, known: Map<Int, String>, hex: Boolea
 
 class MainActivity : AppCompatActivity() {
 
-    private enum class Screen { MAIN, SETTINGS, DEVELOPER, HISTORY, HISTORY_DETAIL }
+    private enum class Screen { MAIN, SETTINGS, DEVELOPER, HISTORY, HISTORY_DETAIL, DEVICES }
     private var currentScreen: Screen = Screen.MAIN
+
+    // Bike selector: addresses of the bikes in the list (so a search does not offer them again), and
+    // what to do once Bluetooth permissions are granted.
+    private var knownBikeAddresses: Set<String> = emptySet()
+    private var afterPermissions: (() -> Unit)? = null
 
     // History screens: which ride is open, and a thread for database reads.
     private var selectedSessionId: Long = -1
@@ -148,14 +160,15 @@ class MainActivity : AppCompatActivity() {
     private val permissionLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
     ) { granted ->
-        if (granted.values.all { it }) startScan() else log(getString(R.string.permissions_denied))
+        if (granted.values.all { it }) afterPermissions?.invoke() else log(getString(R.string.permissions_denied))
+        afterPermissions = null
     }
 
     private val backgroundPermissionLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
     ) {
         if (BackgroundMode.hasRequiredPermissions(this)) {
-            BackgroundMode.setEnabled(this, true)
+            turnOnBackgroundMode()
         } else {
             backgroundCheckbox?.isChecked = false
             Toast.makeText(this, R.string.background_permissions_denied, Toast.LENGTH_LONG).show()
@@ -167,7 +180,10 @@ class MainActivity : AppCompatActivity() {
         BikeLink.init(this)
         BikeLink.addListener(linkListener)
         // Registrations can be lost (reboot, update); re-registering is harmless.
-        if (BackgroundMode.isEnabled(this)) BackgroundMode.register(this)
+        if (BackgroundMode.isEnabled(this)) {
+            BackgroundMode.register(this)
+            BikeService.start(this) // no-op if it is already running; makes sure it is after an update or a kill
+        }
         navigateTo(Screen.MAIN)
     }
 
@@ -175,12 +191,13 @@ class MainActivity : AppCompatActivity() {
         when (currentScreen) {
             Screen.MAIN -> super.onBackPressed()
             Screen.HISTORY_DETAIL -> navigateTo(Screen.HISTORY)
-            Screen.HISTORY -> navigateTo(Screen.SETTINGS)
+            Screen.HISTORY, Screen.DEVICES -> navigateTo(Screen.SETTINGS)
             else -> navigateTo(Screen.MAIN)
         }
     }
 
     private fun navigateTo(screen: Screen) {
+        if (screen != Screen.DEVICES) BikeLink.stopDiscovery()
         currentScreen = screen
         setContentView(
             when (screen) {
@@ -189,6 +206,7 @@ class MainActivity : AppCompatActivity() {
                 Screen.DEVELOPER -> buildDeveloperScreen()
                 Screen.HISTORY -> buildHistoryScreen()
                 Screen.HISTORY_DETAIL -> buildHistoryDetailScreen()
+                Screen.DEVICES -> buildDevicesScreen()
             }
         )
     }
@@ -201,7 +219,7 @@ class MainActivity : AppCompatActivity() {
         connectionIcon = root.findViewById(R.id.connectionIcon)
         updateConnectionIcon()
         connectionIcon?.setOnClickListener {
-            if (BikeLink.state == BikeLink.State.DISCONNECTED) requestPermissionsAndScan() else BikeLink.disconnect()
+            if (BikeLink.state == BikeLink.State.DISCONNECTED) requestPermissionsAndScan() else BikeLink.disconnect(manual = true)
         }
 
         batteryFillImage = root.findViewById(R.id.batteryFillImage)
@@ -369,17 +387,60 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val bikeName = root.findViewById<TextView>(R.id.bikeNameLabel)
+        val bikeAddress = root.findViewById<TextView>(R.id.bikeAddressLabel)
+        val active = BackgroundMode.savedAddress(this)
+        if (active == null) {
+            bikeName.text = getString(R.string.bike_none)
+            bikeAddress.visibility = View.GONE
+        } else {
+            bikeName.text = bikeLabel(null, active)
+            bikeAddress.text = active
+            dbExecutor.execute {
+                val nickname = try { RideDb.get(this).deviceNickname(active) } catch (e: Exception) { null }
+                runOnUiThread { if (!isDestroyed && currentScreen == Screen.SETTINGS) bikeName.text = bikeLabel(nickname, active) }
+            }
+        }
+        root.findViewById<Button>(R.id.chooseBikeBtn).setOnClickListener { navigateTo(Screen.DEVICES) }
+
+        val intervalLabel = root.findViewById<TextView>(R.id.recordIntervalLabel)
+        val intervalInput = root.findViewById<EditText>(R.id.recordIntervalInput)
+        intervalLabel.text = getString(R.string.record_interval_value, BikeRecorder.intervalSeconds(this))
+        root.findViewById<Button>(R.id.setRecordIntervalBtn).setOnClickListener {
+            val v = intervalInput.text.toString().toIntOrNull()
+            if (v == null || v !in BikeRecorder.MIN_INTERVAL_S..BikeRecorder.MAX_INTERVAL_S) {
+                Toast.makeText(this, R.string.record_interval_invalid, Toast.LENGTH_SHORT).show()
+            } else {
+                BikeRecorder.setIntervalSeconds(this, v)
+                intervalLabel.text = getString(R.string.record_interval_value, v)
+                intervalInput.text.clear()
+            }
+        }
+
         root.findViewById<Button>(R.id.historyBtn).setOnClickListener { navigateTo(Screen.HISTORY) }
         root.findViewById<Button>(R.id.developerNavBtn).setOnClickListener { navigateTo(Screen.DEVELOPER) }
 
         return root
     }
 
+    /** Turns background mode on and, once, asks Android to not restrict the app's battery use (needed to stay alive for days). */
+    private fun turnOnBackgroundMode() {
+        BackgroundMode.setEnabled(this, true)
+        val power = getSystemService(PowerManager::class.java)
+        if (power != null && !power.isIgnoringBatteryOptimizations(packageName)) {
+            try {
+                startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
+            } catch (_: Exception) {
+                // No such settings screen on this device: the user can still do it by hand.
+            }
+        }
+    }
+
     /** Asks for the permissions background mode needs, then turns it on. */
     private fun enableBackgroundMode() {
         val missing = BackgroundMode.missingPermissions(this)
         if (missing.isEmpty()) {
-            BackgroundMode.setEnabled(this, true)
+            turnOnBackgroundMode()
         } else {
             backgroundPermissionLauncher.launch(missing.toTypedArray())
         }
@@ -488,6 +549,156 @@ class MainActivity : AppCompatActivity() {
         return root
     }
 
+    // ---------- Devices screen: choose, rename, add or forget bikes (res/layout/screen_devices.xml) ----------
+
+    /** Nickname if there is one, otherwise "EKD01 " plus the last part of the address. */
+    private fun bikeLabel(nickname: String?, address: String): String =
+        nickname?.takeIf { it.isNotBlank() } ?: getString(R.string.device_unnamed, address.takeLast(5))
+
+    private fun buildDevicesScreen(): View {
+        val root = layoutInflater.inflate(R.layout.screen_devices, null)
+        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.SETTINGS) }
+        val list = root.findViewById<LinearLayout>(R.id.deviceList)
+        val empty = root.findViewById<TextView>(R.id.devicesEmpty)
+        val scanBtn = root.findViewById<Button>(R.id.scanBtn)
+        val status = root.findViewById<TextView>(R.id.scanStatus)
+        val found = root.findViewById<LinearLayout>(R.id.foundList)
+
+        loadDeviceList(list, empty)
+
+        scanBtn.setOnClickListener {
+            requestBluetoothPermissions {
+                found.removeAllViews()
+                status.visibility = View.VISIBLE
+                status.text = getString(R.string.devices_searching)
+                scanBtn.isEnabled = false
+                var newCount = 0
+                val started = BikeLink.discoverDevices(
+                    timeoutMs = 10_000,
+                    onFound = { d ->
+                        if (currentScreen == Screen.DEVICES && d.address !in knownBikeAddresses) {
+                            newCount++
+                            found.addView(buildFoundItem(d, found))
+                        }
+                    },
+                    onDone = {
+                        if (currentScreen == Screen.DEVICES) {
+                            scanBtn.isEnabled = true
+                            status.text = if (newCount > 0) getString(R.string.devices_found_count, newCount) else getString(R.string.devices_none_found)
+                        }
+                    }
+                )
+                if (!started) {
+                    scanBtn.isEnabled = true
+                    status.text = getString(R.string.devices_scan_failed)
+                }
+            }
+        }
+        return root
+    }
+
+    private fun loadDeviceList(list: LinearLayout, empty: TextView) {
+        dbExecutor.execute {
+            val devices: List<DeviceRow> = try {
+                RideDb.get(this).loadDevices()
+            } catch (e: Exception) {
+                BikeLink.logDbError(e.message ?: e.javaClass.simpleName)
+                emptyList()
+            }
+            runOnUiThread {
+                if (isDestroyed || currentScreen != Screen.DEVICES) return@runOnUiThread
+                knownBikeAddresses = devices.map { it.address }.toSet()
+                list.removeAllViews()
+                empty.visibility = if (devices.isEmpty()) View.VISIBLE else View.GONE
+                for (d in devices) list.addView(buildDeviceItem(d, list))
+            }
+        }
+    }
+
+    private fun buildDeviceItem(d: DeviceRow, parent: android.view.ViewGroup): View {
+        val item = layoutInflater.inflate(R.layout.item_device, parent, false)
+        val active = d.address.equals(BackgroundMode.savedAddress(this), ignoreCase = true)
+        item.findViewById<TextView>(R.id.deviceName).text = bikeLabel(d.nickname, d.address)
+        item.findViewById<TextView>(R.id.deviceAddress).text = d.address
+        item.findViewById<TextView>(R.id.deviceActive).visibility = if (active) View.VISIBLE else View.GONE
+        val last = d.lastConnectedAt
+        item.findViewById<TextView>(R.id.deviceInfo).text =
+            if (last == null) getString(R.string.device_no_rides)
+            else getString(
+                R.string.device_rides, d.sessionCount,
+                java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT).format(java.util.Date(last))
+            )
+
+        item.setOnClickListener {
+            BackgroundMode.selectBike(this, d.address)
+            navigateTo(Screen.DEVICES)
+        }
+        item.findViewById<Button>(R.id.renameBtn).setOnClickListener { showRenameDialog(d) }
+        item.findViewById<Button>(R.id.forgetBtn).setOnClickListener { showForgetDialog(d) }
+        return item
+    }
+
+    /** A bike seen by the search: tapping it adds it, selects it and connects. */
+    private fun buildFoundItem(d: BikeLink.Discovered, parent: android.view.ViewGroup): View {
+        val item = layoutInflater.inflate(R.layout.item_device, parent, false)
+        item.findViewById<TextView>(R.id.deviceName).text = bikeLabel(null, d.address)
+        item.findViewById<TextView>(R.id.deviceAddress).text = d.address
+        item.findViewById<TextView>(R.id.deviceInfo).visibility = View.GONE
+        item.findViewById<View>(R.id.deviceButtons).visibility = View.GONE
+        item.setOnClickListener {
+            BikeLink.stopDiscovery()
+            dbExecutor.execute {
+                try { RideDb.get(this).addDevice(d.address) } catch (e: Exception) { BikeLink.logDbError(e.message ?: e.javaClass.simpleName) }
+                runOnUiThread {
+                    if (isDestroyed) return@runOnUiThread
+                    BackgroundMode.selectBike(this, d.address)
+                    BikeLink.connectToAddress(d.address)
+                    navigateTo(Screen.DEVICES)
+                }
+            }
+        }
+        return item
+    }
+
+    private fun showRenameDialog(d: DeviceRow) {
+        val input = EditText(this).apply {
+            setText(d.nickname ?: "")
+            setSelection(text.length)
+            hint = getString(R.string.device_rename_hint)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            setSingleLine()
+            filters = arrayOf(InputFilter.LengthFilter(30))
+        }
+        val pad = (20 * resources.displayMetrics.density).toInt()
+        val box = FrameLayout(this).apply { setPadding(pad, pad / 2, pad, 0); addView(input) }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.device_rename_title)
+            .setView(box)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val name = input.text.toString()
+                dbExecutor.execute {
+                    try { RideDb.get(this).renameDevice(d.address, name) } catch (e: Exception) { BikeLink.logDbError(e.message ?: e.javaClass.simpleName) }
+                    runOnUiThread { if (!isDestroyed && currentScreen == Screen.DEVICES) navigateTo(Screen.DEVICES) }
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showForgetDialog(d: DeviceRow) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.device_forget_title)
+            .setMessage(getString(R.string.device_forget_message, bikeLabel(d.nickname, d.address)))
+            .setPositiveButton(R.string.device_forget) { _, _ ->
+                if (d.address.equals(BackgroundMode.savedAddress(this), ignoreCase = true)) BackgroundMode.clearSelectedBike(this)
+                BikeRecorder.forgetDevice(d.address) {
+                    if (!isDestroyed && currentScreen == Screen.DEVICES) navigateTo(Screen.DEVICES)
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     // ---------- History screens: recorded rides (res/layout/screen_history*.xml, item_session.xml) ----------
 
     private fun buildHistoryScreen(): View {
@@ -495,15 +706,24 @@ class MainActivity : AppCompatActivity() {
         root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.SETTINGS) }
         val list = root.findViewById<LinearLayout>(R.id.historyList)
         val empty = root.findViewById<TextView>(R.id.historyEmpty)
+        val bikeView = root.findViewById<TextView>(R.id.historyBike)
+        val active = BackgroundMode.savedAddress(this)
         dbExecutor.execute {
+            var nickname: String? = null
             val sessions: List<SessionRow> = try {
-                RideDb.get(this).loadSessions()
+                val db = RideDb.get(this)
+                if (active != null) nickname = db.deviceNickname(active)
+                db.loadSessions(active)
             } catch (e: Exception) {
                 BikeLink.logDbError(e.message ?: e.javaClass.simpleName)
                 emptyList()
             }
             runOnUiThread {
                 if (isDestroyed || currentScreen != Screen.HISTORY) return@runOnUiThread
+                if (active != null) {
+                    bikeView.text = getString(R.string.history_for, bikeLabel(nickname, active))
+                    bikeView.visibility = View.VISIBLE
+                }
                 empty.visibility = if (sessions.isEmpty()) View.VISIBLE else View.GONE
                 for (s in sessions) {
                     val item = buildSessionItem(s, list)
@@ -520,6 +740,7 @@ class MainActivity : AppCompatActivity() {
         root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.HISTORY) }
         val header = root.findViewById<LinearLayout>(R.id.detailHeader)
         val samplesView = root.findViewById<TextView>(R.id.detailSamples)
+        val chartList = root.findViewById<LinearLayout>(R.id.chartList)
         val sessionId = selectedSessionId
         dbExecutor.execute {
             var session: SessionRow? = null
@@ -536,9 +757,39 @@ class MainActivity : AppCompatActivity() {
                 session?.let { header.addView(buildSessionItem(it, header)) }
                 samplesView.text = if (samples.isEmpty()) getString(R.string.history_no_samples)
                 else samples.joinToString("\n") { formatSample(it) }
+                addCharts(chartList, samples)
             }
         }
         return root
+    }
+
+    /** One graph (value against time) per recorded parameter. Parameters with no data are left out. */
+    private fun addCharts(parent: LinearLayout, samples: List<SampleRow>) {
+        val params: List<Pair<Int, (SampleRow) -> Double?>> = listOf(
+            R.string.chart_battery to { r -> r.batteryPct?.toDouble() },
+            R.string.chart_speed to { r -> r.speedKmh },
+            R.string.chart_odo to { r -> r.odoKm },
+            R.string.chart_trip_km to { r -> r.tripKm },
+            R.string.chart_trip_time to { r -> r.tripTimeS?.let { it / 60.0 } },
+            R.string.chart_avg to { r -> r.tripAvgKmh },
+            R.string.chart_max to { r -> r.tripMaxKmh }
+        )
+        for ((titleRes, select) in params) {
+            val xs = ArrayList<Long>()
+            val ys = ArrayList<Double>()
+            for (r in samples) {
+                val v = select(r) ?: continue
+                xs += r.ts
+                ys += v
+            }
+            if (ys.isEmpty()) continue
+            val card = layoutInflater.inflate(R.layout.item_chart, parent, false)
+            card.findViewById<TextView>(R.id.chartTitle).text = getString(titleRes)
+            card.findViewById<TextView>(R.id.chartRange).text =
+                getString(R.string.chart_range, "%.1f".format(ys.minOrNull()!!), "%.1f".format(ys.maxOrNull()!!))
+            card.findViewById<LineChartView>(R.id.chartView).setData(xs, ys)
+            parent.addView(card)
+        }
     }
 
     private fun percentText(value: Int?): String = value?.let { getString(R.string.battery_percent, it) } ?: dash
@@ -564,6 +815,16 @@ class MainActivity : AppCompatActivity() {
             distance.text = getString(R.string.history_distance, odoEnd - odoStart, odoEnd)
         } else {
             distance.visibility = View.GONE
+        }
+
+        val tripTime = s.tripTimeS
+        val avg = s.avgKmh
+        val max = s.maxKmh
+        if (tripTime != null && avg != null && max != null) {
+            item.findViewById<TextView>(R.id.sessionTrip).apply {
+                text = getString(R.string.history_trip, formatDuration(tripTime), avg, max)
+                visibility = View.VISIBLE
+            }
         }
 
         if (s.chargeDetected) {
@@ -602,7 +863,10 @@ class MainActivity : AppCompatActivity() {
 
     // ---------- Permissions + manual scan ----------
 
-    private fun requestPermissionsAndScan() {
+    private fun requestPermissionsAndScan() = requestBluetoothPermissions { startScan() }
+
+    /** Runs [action] once the Bluetooth permissions are granted (asking for them first if needed). */
+    private fun requestBluetoothPermissions(action: () -> Unit) {
         val needed = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= 31) {
             needed += Manifest.permission.BLUETOOTH_SCAN
@@ -613,7 +877,12 @@ class MainActivity : AppCompatActivity() {
         val missing = needed.filter {
             ActivityCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
-        if (missing.isEmpty()) startScan() else permissionLauncher.launch(missing.toTypedArray())
+        if (missing.isEmpty()) {
+            action()
+        } else {
+            afterPermissions = action
+            permissionLauncher.launch(missing.toTypedArray())
+        }
     }
 
     private fun startScan() {
@@ -622,6 +891,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         BikeLink.removeListener(linkListener)
+        BikeLink.stopDiscovery()
         dbExecutor.shutdown()
         // Leaving the app drops a connection started here, as before. A connection kept alive by
         // the background service is left alone, and a rotation does not disconnect either.

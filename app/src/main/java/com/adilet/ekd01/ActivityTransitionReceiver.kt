@@ -24,6 +24,6 @@ class ActivityTransitionReceiver : BroadcastReceiver() {
 
         val what = if (entered.activityType == DetectedActivity.ON_BICYCLE) "ON_BICYCLE" else "IN_VEHICLE"
         BikeLink.log(context.getString(R.string.log_background_trigger, what))
-        BikeService.start(context)
+        BikeService.start(context, scan = true)
     }
 }
