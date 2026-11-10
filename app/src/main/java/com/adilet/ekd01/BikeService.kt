@@ -49,7 +49,7 @@ class BikeService : Service() {
 
         private const val EXTRA_SCAN = "scan"
         private const val EXTRA_REARM = "rearm"
-        private const val CHANNEL_ID = "bike_connection_quiet"
+        const val CHANNEL_ID = "bike_connection_quiet"
         private const val OLD_CHANNEL_ID = "bike_connection"
         private const val NOTIFICATION_ID = 1
 

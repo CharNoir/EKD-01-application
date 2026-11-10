@@ -38,8 +38,8 @@
     <string name="not_connected">Not connected.</string>
     <string name="background_title">Background</string>
     <string name="background_execution_enabled">Background execution enabled</string>
-    <string name="background_hint">Keeps the app running quietly in the background (with a small notification), starts it after a restart, and connects to the bike as soon as it is switched on. Choose your bike and connect to it once in the app first.</string>
-    <string name="background_permissions_denied">Background execution needs the Physical activity, Nearby devices and Notifications permissions.</string>
+    <string name="background_hint">Keeps the app running quietly in the background (its notification is hidden by default), starts it after a restart, and connects to the bike as soon as it is switched on. Choose your bike and connect to it once in the app first.</string>
+    <string name="background_permissions_denied">Background execution needs the Physical activity and Nearby devices permissions.</string>
     <string name="notif_channel_name">Bike connection</string>
     <string name="notif_searching">Looking for your bike…</string>
     <string name="notif_connected">Connected to your bike</string>
@@ -82,6 +82,7 @@
     <string name="device_forget_title">Forget this bike?</string>
     <string name="device_forget_message">%1$s and all its recorded rides will be deleted from this phone.</string>
     <string name="history_for">Bike: %1$s</string>
+    <string name="notification_settings_button">Notification settings</string>
     <string name="record_title">Recording</string>
     <string name="record_interval_hint">Seconds between saved readings (1–3600)</string>
     <string name="record_interval_set">Set interval</string>

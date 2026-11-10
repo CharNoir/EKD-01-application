@@ -73,6 +73,7 @@
                 android:textColor="@color/text_primary"
                 android:text="@string/background_execution_enabled" />
             <TextView style="@style/HintText" android:text="@string/background_hint" />
+            <Button android:id="@+id/notificationSettingsBtn" style="@style/AmberButton" android:layout_width="match_parent" android:layout_marginTop="8dp" android:text="@string/notification_settings_button" />
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">

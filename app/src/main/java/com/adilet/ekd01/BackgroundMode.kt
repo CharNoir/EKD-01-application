@@ -85,9 +85,12 @@ object BackgroundMode {
         }
     }
 
-    /** Required ones plus the notification permission (Android 13+), which only affects whether the status notification is shown. */
-    private fun requestablePermissions(): List<String> =
-        requiredPermissions() + if (Build.VERSION.SDK_INT >= 33) listOf(Manifest.permission.POST_NOTIFICATIONS) else emptyList()
+    /**
+     * Only the required ones. The notification permission (Android 13+) is deliberately not requested:
+     * without it the service runs with its notification hidden. The user can turn it on in the
+     * system notification settings (Settings has a button for that).
+     */
+    private fun requestablePermissions(): List<String> = requiredPermissions()
 
     private fun granted(ctx: Context, p: String) =
         ContextCompat.checkSelfPermission(ctx, p) == PackageManager.PERMISSION_GRANTED

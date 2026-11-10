@@ -417,10 +417,25 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        root.findViewById<Button>(R.id.notificationSettingsBtn).setOnClickListener { openNotificationSettings() }
+
         root.findViewById<Button>(R.id.historyBtn).setOnClickListener { navigateTo(Screen.HISTORY) }
         root.findViewById<Button>(R.id.developerNavBtn).setOnClickListener { navigateTo(Screen.DEVELOPER) }
 
         return root
+    }
+
+    /** Opens the system settings for the service notification (the channel if it exists, otherwise the app's). */
+    private fun openNotificationSettings() {
+        val channel = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            .putExtra(Settings.EXTRA_CHANNEL_ID, BikeService.CHANNEL_ID)
+        val app = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        try {
+            startActivity(channel)
+        } catch (_: Exception) {
+            try { startActivity(app) } catch (_: Exception) {}
+        }
     }
 
     /** Turns background mode on and, once, asks Android to not restrict the app's battery use (needed to stay alive for days). */
