@@ -159,10 +159,25 @@ object KnockDetector {
         val action = KnockActions.byId(knock.actionId)
         val actionName = action?.let { ctx.getString(it.nameRes) } ?: knock.actionId
         BikeLink.log(ctx.getString(R.string.log_knock, knock.sequenceText, actionName))
-        (ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator)
-            ?.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE))
-        BikeLink.notifyGesture("${knock.sequenceText} → $actionName")
-        val ok = try { action?.run(ctx, knock.parameter) ?: false } catch (e: Exception) { false }
+        // Each step is guarded on its own so that a failure shows up in the log instead of killing the app.
+        val ok = try {
+            action?.run(ctx, knock.parameter) ?: false
+        } catch (e: Throwable) {
+            BikeLink.log("Knock action threw: $e")
+            false
+        }
         if (!ok) BikeLink.log(ctx.getString(R.string.log_knock_failed, actionName))
+        try {
+            (ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator)
+                ?.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE))
+        } catch (e: Throwable) {
+            BikeLink.log("Knock vibrate threw: $e")
+        }
+        try {
+            BikeLink.notifyGesture("${knock.sequenceText} → $actionName")
+        } catch (e: Throwable) {
+            BikeLink.log("Knock notify threw: $e")
+        }
+        BikeLink.log("Knock finished.")
     }
 }
