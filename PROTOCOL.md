@@ -60,11 +60,24 @@ That means no real security: anyone with it can control an EKD01-TB display over
 | `E2` | BT unlock level | 1 byte, 1..5 | confirmed |
 | `E0` | Units | 1 byte, 0 = km, 1 = mi | confirmed live |
 | `B4` | Auto-off timeout | 2 bytes LE, minutes | confirmed live (1 gave a 1-minute timeout) |
+| `E1` | Phone notification push on/off (BikeGo `switchMeterMsgNotification`) | 1 byte | from BikeGo code, untested |
 
 Other registers (payload lengths come from the app's register table; see `SETTINGS_REGISTERS` in `Protocol.kt`):
 - `A0 A2 A8 AA AC AE B0` are rejected by this firmware (write ack status `02`).
 - `B6` (27 bytes) is accepted but corrupts the brightness setting on write (firmware buffer overflow). Do not write it.
 - Other registers are untested.
+
+## Writes to the display itself (phone → `10`, CMD `02`)
+
+All frames BikeGo 2.1.7 sends, from its Dart code (`MeterManager`). It has no speed-limit or speed-unlock write at all.
+
+| ARG | Meaning | DATA | Status |
+|---|---|---|---|
+| `0E` | Bike lock (`openLock` / `lock`) | 1 byte: 1 = unlock, 0 = lock | from BikeGo code, untested (T1 byte 3 should follow) |
+| `3E`, `42`, `46` | Time sync (BikeGo sends all three) | 4-byte LE epoch | `46` verified, the others are not needed |
+| `F1`/`02` | Unbind the display from the phone (`unbindMeter`, DST `F1`) | 1 byte, 0 | from BikeGo code; do not use |
+
+Reads BikeGo uses: `A5`/`18` display version, `A5`/`88` display name, `A5`/`48` serial number, `A5`/`78` error codes, `A5`/`E0` units, `A5`/`E2` BT unlock level, `A3`/`18` controller version, `F1`/`01` configuration block (26 bytes), `A8`/`00` tyre pressure. The `A6` reads (`1C`, `5C`, `72`..`74`, `88`, `9C`, `AA`..`AC`, `BC`, `BD`, `C4`, `E0`) are for an optional GPS/SIM tracker unit, not the display.
 
 ## Navigation (phone → `F1`, CMD `03`, ARG `00`)
 
@@ -106,7 +119,8 @@ A second subsystem `A3`, found in the app's register table, never appears in cap
 | 4 | light (non-zero = on) |
 | 5 | assist level |
 | 7 | battery % |
-| 9–10 | current speed, LE, km/h × 10 (100 → 10.0 km/h) |
+| 8 | speed unlock flag (non-zero = unlocked, speed above 25 km/h allowed), reported by the owner |
+| 9–10 | current speed, LE (byte 9 low, byte 10 high), km/h × 10 (100 → 10.0 km/h) |
 | 11–12 | trip, LE, × 0.01 km |
 | 15–18 | odometer, LE, × 0.01 km |
 
@@ -124,5 +138,5 @@ Verified in the capture: 66 %, 40.43 km trip, 3723.37 km odometer.
 
 ## Open questions
 
-- Current speed is decoded from bytes 9–10 (LE, × 0.1). Reported by the owner: the value is two bytes, a single byte capped the display at 25.5 km/h. The original capture had speed 0, so the high byte is not verified against a capture yet.
+- Current speed is bytes 9–10 (LE, × 0.1); a single byte capped the display at 25.5 km/h. Byte 8 is the unlock flag. Both are owner-reported and not yet checked against a capture above 25 km/h.
 - Contents of the startup reads (A5/88, A5/E0, F1/01 block) are not decoded.

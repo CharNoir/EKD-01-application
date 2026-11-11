@@ -503,7 +503,7 @@ object BikeLink {
                         BikeRecorder.onTelemetry1(t1)
                         main.post { listeners.forEach { it.onTelemetry1(t1) } }
                         if (showTelemetryLog) {
-                            log("T1  light=${t1.light} assist=${t1.assistLevel} batt=${t1.batteryPct}% speed=${t1.speedKmh}km/h trip=${t1.tripKm}km odo=${t1.odometerKm}km")
+                            log("T1  light=${t1.light} assist=${t1.assistLevel} batt=${t1.batteryPct}% speed=${t1.speedKmh}km/h unlocked=${t1.speedUnlocked} trip=${t1.tripKm}km odo=${t1.odometerKm}km")
                         }
                     } else if (t9 != null) {
                         lastT9 = t9

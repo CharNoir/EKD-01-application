@@ -30,15 +30,16 @@ private const val COLOR_BAD: Int = 0xFFE53935.toInt()
 // used to label the raw-byte dump in the Developer screen so the still-unidentified
 // bytes stand out from the ones we already understand.
 private val T1_KNOWN_BYTES: Map<Int, String> = mapOf(
-    4 to "light", 5 to "assist", 7 to "battery", 9 to "speed",
-    11 to "trip lo", 12 to "trip hi",
+    2 to "lock flags", 3 to "bike unlock", 4 to "light", 5 to "assist", 6 to "gear count", 7 to "battery",
+    8 to "unlocked", 9 to "speed lo", 10 to "speed hi",
+    11 to "trip b0", 12 to "trip b1", 13 to "trip b2", 14 to "trip b3",
     15 to "odo b0", 16 to "odo b1", 17 to "odo b2", 18 to "odo b3"
 )
 private val T9_KNOWN_BYTES: Map<Int, String> = mapOf(
-    0 to "rideTime lo", 1 to "rideTime hi",
+    0 to "rideTime b0", 1 to "rideTime b1", 2 to "rideTime b2", 3 to "rideTime b3",
     4 to "avg lo", 5 to "avg hi",
     6 to "max lo", 7 to "max hi",
-    15 to "btUnlock"
+    12 to "brightness", 15 to "btUnlock"
 )
 
 /** One line per byte: index, value in the requested base, and a [label] for bytes
@@ -523,6 +524,11 @@ class MainActivity : AppCompatActivity() {
             val level = idx + 1
             root.findViewById<Button>(id).setOnClickListener { sendNow(Protocol.setBtUnlock(level)) }
         }
+
+        root.findViewById<Button>(R.id.bikeUnlockBtn).setOnClickListener { sendNow(Protocol.setBikeUnlocked(true)) }
+        root.findViewById<Button>(R.id.bikeLockBtn).setOnClickListener { sendNow(Protocol.setBikeUnlocked(false)) }
+        root.findViewById<Button>(R.id.msgNotifyOnBtn).setOnClickListener { sendNow(Protocol.setMessageNotification(true)) }
+        root.findViewById<Button>(R.id.msgNotifyOffBtn).setOnClickListener { sendNow(Protocol.setMessageNotification(false)) }
 
         // The real nav subsystem, found by decompiling NavigationMainActivity.v() and
         // S4/b.java's stop-navigation dialog handler. It's cmd=0x03 on DST=0xF1 - a single

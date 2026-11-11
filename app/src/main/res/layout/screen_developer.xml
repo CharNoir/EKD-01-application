@@ -77,6 +77,24 @@
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="@string/bike_lock_title" />
+            <TextView style="@style/HintText" android:text="@string/bike_lock_hint" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <Button android:id="@+id/bikeUnlockBtn" style="@style/AmberButton.Row" android:text="@string/bike_lock_unlock" />
+                <Button android:id="@+id/bikeLockBtn" style="@style/AmberButton.Row" android:text="@string/bike_lock_lock" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="@string/msg_notify_title" />
+            <TextView style="@style/HintText" android:text="@string/msg_notify_hint" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <Button android:id="@+id/msgNotifyOnBtn" style="@style/AmberButton.Row" android:text="@string/msg_notify_on" />
+                <Button android:id="@+id/msgNotifyOffBtn" style="@style/AmberButton.Row" android:text="@string/msg_notify_off" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
             <TextView style="@style/CardTitle" android:text="@string/nav_startstop_title" />
             <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
                 <Button android:id="@+id/navStartBtn" style="@style/AmberButton.Row" android:text="@string/nav_start" />

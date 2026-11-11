@@ -85,6 +85,15 @@ object Protocol {
     fun setBtUnlock(level: Int) = build(PHONE, SETTINGS, 0x02, 0xE2, byteArrayOf(level.toByte()))
     fun setUnitsMiles(miles: Boolean) = build(PHONE, SETTINGS, 0x02, 0xE0, byteArrayOf(if (miles) 1 else 0))
 
+    /**
+     * Bike lock: write to DISPLAY (not SETTINGS), ARG 0x0E, 1 byte: 1 = unlock, 0 = lock.
+     * Taken from BikeGo's MeterManager.openLock / lock; not tested live. T1 byte 3 should follow.
+     */
+    fun setBikeUnlocked(unlocked: Boolean) = build(PHONE, DISPLAY, 0x02, 0x0E, byteArrayOf(if (unlocked) 1 else 0))
+
+    /** Phone-notification push on/off (BikeGo "switchMeterMsgNotification"), 1 byte; not tested live. */
+    fun setMessageNotification(on: Boolean) = build(PHONE, SETTINGS, 0x02, 0xE1, byteArrayOf(if (on) 1 else 0))
+
     /** Auto-off / sleep timeout in minutes (confirmed live: writing 1 gave a 1-minute timeout). */
     fun setAutoOffMinutes(minutes: Int) = build(PHONE, SETTINGS, 0x02, 0xB4, leBytes(minutes.toLong(), 2))
 
@@ -93,7 +102,8 @@ object Protocol {
      * (from the BikeGo app's O3/v.java).
      *
      * Confirmed meanings: 0xA4 assist, 0xA6 light, 0xA7 brightness, 0xE2 BT unlock,
-     * 0xE0 units (0 = km, 1 = mi), 0xB4 auto-off minutes.
+     * 0xE0 units (0 = km, 1 = mi), 0xB4 auto-off minutes. 0xE1 is "message notification" in
+     * BikeGo (1 byte, on/off), not tested live.
      *
      * Not usable on this firmware: 0xA0/A2/A8/AA/AC/AE/B0 are rejected (ack status 2).
      * 0xB6 is accepted but corrupts brightness (firmware buffer overflow), so don't write it.
@@ -232,7 +242,16 @@ object Protocol {
         val batteryPct: Int,
         val tripKm: Double,
         val odometerKm: Double,
-        val speedKmh: Double
+        val speedKmh: Double,
+        /** Byte 8: the display's speed-limit unlock flag (non-zero = unlocked, speed above 25 km/h allowed). */
+        val speedUnlocked: Boolean = false,
+        /** Byte 6: number of assist levels the display offers ("wholeGear" in the BikeGo app). */
+        val gearCount: Int = 0,
+        /** Byte 3: BikeGo shows "Bike Unlocked" when non-zero and "Bike Locked" when 0. */
+        val bikeUnlocked: Boolean = false,
+        /** Byte 2 bit 0 ("pwdLockStatus") and bit 1 ("bleLockStatus") in BikeGo. */
+        val passwordLock: Boolean = false,
+        val bleLock: Boolean = false
     )
 
     data class Telemetry9(val rideTimeS: Int, val avgKmh: Double, val maxKmh: Double, val btUnlockLevel: Int)
@@ -249,16 +268,21 @@ object Protocol {
             light = f.data[4].toInt() != 0,
             assistLevel = f.data[5].toInt() and 0xFF,
             batteryPct = f.data[7].toInt() and 0xFF,
-            tripKm = leUInt(f.data, 11, 2) / 100.0,
+            tripKm = leUInt(f.data, 11, 4) / 100.0, // 4 bytes LE, like the BikeGo app
             odometerKm = leUInt(f.data, 15, 4) / 100.0,
-            speedKmh = leUInt(f.data, 9, 2) / 10.0 // bytes 9-10, LE, x10 (100 -> 10.0 km/h); one byte would overflow at 25.5
+            speedKmh = leUInt(f.data, 9, 2) / 10.0, // bytes 9 (low) and 10 (high), LE, x10 (100 -> 10.0 km/h)
+            speedUnlocked = f.data[8].toInt() != 0,
+            gearCount = f.data[6].toInt() and 0xFF,
+            bikeUnlocked = f.data[3].toInt() != 0,
+            passwordLock = (f.data[2].toInt() and 1) != 0,
+            bleLock = (f.data[2].toInt() and 2) != 0
         )
     }
 
     fun decodeTelemetry9(f: Frame): Telemetry9? {
         if (f.src != DISPLAY || f.cmd != 0x06 || f.arg != 0x09 || f.data.size != 16) return null
         return Telemetry9(
-            rideTimeS = leUInt(f.data, 0, 2).toInt(),
+            rideTimeS = leUInt(f.data, 0, 4).toInt(), // 4 bytes LE; 2 bytes would overflow after 18 h
             avgKmh = leUInt(f.data, 4, 2) / 100.0,
             maxKmh = leUInt(f.data, 6, 2) / 10.0,
             btUnlockLevel = f.data[15].toInt() and 0xFF
