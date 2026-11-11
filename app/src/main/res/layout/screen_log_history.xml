@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/logHistoryScroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/page_bg">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <LinearLayout style="@style/CardContainer">
+            <Button android:id="@+id/backBtn" style="@style/AmberButton" android:text="@string/back" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="@string/log_history_title" />
+            <TextView android:id="@+id/logHistoryInfo" style="@style/HintText" android:paddingBottom="6dp" />
+            <EditText
+                android:id="@+id/logHistoryFilter"
+                style="@style/StyledEditText"
+                android:hint="@string/log_history_filter_hint"
+                android:inputType="text"
+                android:imeOptions="actionSearch"
+                android:singleLine="true" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <Button android:id="@+id/logHistoryRefreshBtn" style="@style/AmberButton.Row" android:text="@string/log_history_refresh" />
+                <Button android:id="@+id/logHistoryOlderBtn" style="@style/AmberButton.Row" android:layout_marginStart="8dp" android:text="@string/log_history_older" />
+            </LinearLayout>
+            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp">
+                <Button android:id="@+id/logHistoryShareBtn" style="@style/AmberButton.Row" android:text="@string/log_history_share" />
+                <Button android:id="@+id/logHistoryClearBtn" style="@style/AmberButton.Row" android:layout_marginStart="8dp" android:text="@string/log_history_clear" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/logHistoryText"
+            style="@style/MonoText"
+            android:layout_width="match_parent"
+            android:textIsSelectable="true"
+            android:padding="6dp" />
+
+    </LinearLayout>
+</ScrollView>

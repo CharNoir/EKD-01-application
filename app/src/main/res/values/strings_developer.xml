@@ -38,6 +38,19 @@
     <string name="nav_send">Send nav update</string>
     <string name="nav_icon_codes" translatable="false">Icon codes: straight=1 left=2 right=3 slight-left=4 slight-right=5 sharp-left=6 sharp-right=7 uturn=8 complete/none=10</string>
     <string name="log_title">Log</string>
+    <string name="log_history_checkbox" translatable="false">Save log to history file (kept across connections and restarts)</string>
+    <string name="log_history_open" translatable="false">Open log history</string>
+    <string name="log_history_title" translatable="false">Log history</string>
+    <string name="log_history_info" translatable="false">Showing the last %1$d KB of %2$d KB saved (oldest part is dropped after about 2 MB).</string>
+    <string name="log_history_empty" translatable="false">Nothing saved yet (or nothing matches the filter).</string>
+    <string name="log_history_filter_hint" translatable="false">Show only lines containing…</string>
+    <string name="log_history_refresh" translatable="false">Refresh</string>
+    <string name="log_history_older" translatable="false">Load older</string>
+    <string name="log_history_share" translatable="false">Share</string>
+    <string name="log_history_clear" translatable="false">Clear history</string>
+    <string name="log_history_clear_title" translatable="false">Delete the saved log history?</string>
+    <string name="log_history_share_title" translatable="false">Share log</string>
+    <string name="log_process_started" translatable="false">--- app process started ---</string>
     <string name="log_telemetry_checkbox">Show T1/T9 telemetry in log (noisy - several lines/sec)</string>
     <string name="copy_log">Copy log</string>
     <string name="clear_log">Clear log</string>
@@ -57,7 +70,7 @@
     <string name="log_scan_failed" translatable="false">Scan failed: %1$d</string>
     <string name="log_disconnected" translatable="false">Disconnected.</string>
     <string name="log_connected_discovering" translatable="false">Connected, discovering services...</string>
-    <string name="log_link_dropped" translatable="false">Link dropped.</string>
+    <string name="log_link_dropped" translatable="false">Link dropped (GATT status %1$d: 0 = normal, 8 = timeout, 19 = bike ended it, 22 = phone ended it, 133 = generic error).</string>
     <string name="log_uart_not_found" translatable="false">UART service not found.</string>
     <string name="log_services_discovered" translatable="false">Services discovered, authenticating...</string>
     <string name="log_notifications_enabled" translatable="false">Notifications enabled, sending HELLO.</string>

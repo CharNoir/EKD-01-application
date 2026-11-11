@@ -116,6 +116,9 @@
             <CheckBox android:id="@+id/telemetryLogCheckbox" android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:textColor="@color/text_primary"
                 android:text="@string/log_telemetry_checkbox" />
+            <CheckBox android:id="@+id/logHistoryCheckbox" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:text="@string/log_history_checkbox" />
             <androidx.core.widget.NestedScrollView
                 android:id="@+id/logScroll"
                 android:layout_width="match_parent"
@@ -135,6 +138,7 @@
                 <Button android:id="@+id/copyLogBtn" style="@style/AmberButton.Row" android:text="@string/copy_log" />
                 <Button android:id="@+id/clearLogBtn" style="@style/AmberButton.Row" android:text="@string/clear_log" />
             </LinearLayout>
+            <Button android:id="@+id/openLogHistoryBtn" style="@style/AmberButton" android:layout_width="match_parent" android:layout_marginTop="8dp" android:text="@string/log_history_open" />
         </LinearLayout>
 
     </LinearLayout>

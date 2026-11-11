@@ -111,6 +111,8 @@ object BikeLink {
     fun init(context: Context) {
         if (!::appContext.isInitialized) {
             appContext = context.applicationContext
+            LogStore.init(appContext)
+            LogStore.append(SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date()) + "  " + appContext.getString(R.string.log_process_started) + "\n")
             BikeRecorder.start(appContext)
             KnockStore.load(appContext)
         }
@@ -122,8 +124,9 @@ object BikeLink {
     // ---- Logging ---------------------------------------------------------------------------
 
     fun log(msg: String) {
-        val ts = SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(Date())
-        val line = "$ts  $msg\n"
+        val stamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
+        val line = "${stamp.substring(11)}  $msg\n" // the on-screen log shows the time only
+        LogStore.append("$stamp  $msg\n")
         main.post {
             logBuffer.append(line)
             if (logBuffer.length > MAX_LOG_CHARS) logBuffer.delete(0, MAX_LOG_CHARS / 2)
@@ -419,7 +422,7 @@ object BikeLink {
                 log(str(R.string.log_connected_discovering))
                 g.discoverServices()
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                log(str(R.string.log_link_dropped))
+                log(str(R.string.log_link_dropped, status))
                 try { g.close() } catch (_: Exception) {}
                 if (gatt === g) { gatt = null; autoPending = false }
                 writeQueue.clear()

@@ -61,7 +61,7 @@ private fun formatRawBytes(data: ByteArray, known: Map<Int, String>, hex: Boolea
 
 class MainActivity : AppCompatActivity() {
 
-    private enum class Screen { MAIN, SETTINGS, DEVELOPER, HISTORY, HISTORY_DETAIL, DEVICES, KNOCKS }
+    private enum class Screen { MAIN, SETTINGS, DEVELOPER, HISTORY, HISTORY_DETAIL, DEVICES, KNOCKS, LOG_HISTORY }
     private var currentScreen: Screen = Screen.MAIN
 
     // Bike selector: addresses of the bikes in the list (so a search does not offer them again), and
@@ -206,6 +206,7 @@ class MainActivity : AppCompatActivity() {
             Screen.MAIN -> super.onBackPressed()
             Screen.HISTORY_DETAIL -> navigateTo(Screen.HISTORY)
             Screen.HISTORY, Screen.DEVICES, Screen.KNOCKS -> navigateTo(Screen.SETTINGS)
+            Screen.LOG_HISTORY -> navigateTo(Screen.DEVELOPER)
             else -> navigateTo(Screen.MAIN)
         }
     }
@@ -222,6 +223,7 @@ class MainActivity : AppCompatActivity() {
                 Screen.HISTORY_DETAIL -> buildHistoryDetailScreen()
                 Screen.DEVICES -> buildDevicesScreen()
                 Screen.KNOCKS -> buildKnocksScreen()
+                Screen.LOG_HISTORY -> buildLogHistoryScreen()
             }
         )
     }
@@ -570,6 +572,12 @@ class MainActivity : AppCompatActivity() {
         telemetryCheckbox.isChecked = BikeLink.showTelemetryLog
         telemetryCheckbox.setOnCheckedChangeListener { _, checked -> BikeLink.showTelemetryLog = checked }
 
+        root.findViewById<CheckBox>(R.id.logHistoryCheckbox).apply {
+            isChecked = LogStore.enabled
+            setOnCheckedChangeListener { _, checked -> LogStore.setEnabled(this@MainActivity, checked) }
+        }
+        root.findViewById<Button>(R.id.openLogHistoryBtn).setOnClickListener { navigateTo(Screen.LOG_HISTORY) }
+
         val lv = root.findViewById<TextView>(R.id.logView)
         lv.text = BikeLink.logBuffer.toString()
         logView = lv
@@ -581,6 +589,63 @@ class MainActivity : AppCompatActivity() {
         }
         root.findViewById<Button>(R.id.clearLogBtn).setOnClickListener { BikeLink.clearLog(); lv.text = "" }
 
+        return root
+    }
+
+    // ---------- Log history: the saved log file, browsable (res/layout/screen_log_history.xml) ----------
+
+    private var logHistoryChars = 100_000
+
+    private fun buildLogHistoryScreen(): View {
+        val root = layoutInflater.inflate(R.layout.screen_log_history, null)
+        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.DEVELOPER) }
+        val scroll = root.findViewById<ScrollView>(R.id.logHistoryScroll)
+        val text = root.findViewById<TextView>(R.id.logHistoryText)
+        val info = root.findViewById<TextView>(R.id.logHistoryInfo)
+        val filterInput = root.findViewById<EditText>(R.id.logHistoryFilter)
+
+        fun load() {
+            val filter = filterInput.text.toString().trim()
+            val chars = logHistoryChars
+            dbExecutor.execute {
+                val tail = LogStore.readTail(chars)
+                val size = LogStore.sizeBytes()
+                val shown = if (filter.isEmpty()) tail
+                else tail.lineSequence().filter { it.contains(filter, ignoreCase = true) }.joinToString("\n")
+                runOnUiThread {
+                    if (isDestroyed || currentScreen != Screen.LOG_HISTORY) return@runOnUiThread
+                    text.text = shown.ifEmpty { getString(R.string.log_history_empty) }
+                    info.text = getString(R.string.log_history_info, tail.length / 1024, size / 1024)
+                    scroll.post { scroll.fullScroll(View.FOCUS_DOWN) }
+                }
+            }
+        }
+
+        root.findViewById<Button>(R.id.logHistoryRefreshBtn).setOnClickListener { load() }
+        filterInput.setOnEditorActionListener { _, _, _ -> load(); true }
+        root.findViewById<Button>(R.id.logHistoryOlderBtn).setOnClickListener {
+            logHistoryChars = (logHistoryChars + 200_000).coerceAtMost(2_000_000)
+            load()
+        }
+        root.findViewById<Button>(R.id.logHistoryShareBtn).setOnClickListener {
+            val body = text.text.toString().takeLast(200_000) // keeps the share intent small
+            startActivity(
+                Intent.createChooser(
+                    Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, body),
+                    getString(R.string.log_history_share_title)
+                )
+            )
+        }
+        root.findViewById<Button>(R.id.logHistoryClearBtn).setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.log_history_clear_title)
+                .setPositiveButton(R.string.log_history_clear) { _, _ ->
+                    dbExecutor.execute { LogStore.clear(); runOnUiThread { load() } }
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+        load()
         return root
     }
 
