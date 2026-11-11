@@ -106,7 +106,7 @@ A second subsystem `A3`, found in the app's register table, never appears in cap
 | 4 | light (non-zero = on) |
 | 5 | assist level |
 | 7 | battery % |
-| 9 | current speed, km/h × 10 (100 → 10.0 km/h) |
+| 9–10 | current speed, LE, km/h × 10 (100 → 10.0 km/h) |
 | 11–12 | trip, LE, × 0.01 km |
 | 15–18 | odometer, LE, × 0.01 km |
 
@@ -124,5 +124,5 @@ Verified in the capture: 66 %, 40.43 km trip, 3723.37 km odometer.
 
 ## Open questions
 
-- Byte 9 as current speed is what `Protocol.kt` decodes; the original capture had speed 0, so it is not verified against the capture.
+- Current speed is decoded from bytes 9–10 (LE, × 0.1). Reported by the owner: the value is two bytes, a single byte capped the display at 25.5 km/h. The original capture had speed 0, so the high byte is not verified against a capture yet.
 - Contents of the startup reads (A5/88, A5/E0, F1/01 block) are not decoded.

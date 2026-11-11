@@ -251,7 +251,7 @@ object Protocol {
             batteryPct = f.data[7].toInt() and 0xFF,
             tripKm = leUInt(f.data, 11, 2) / 100.0,
             odometerKm = leUInt(f.data, 15, 4) / 100.0,
-            speedKmh = (f.data[9].toInt() and 0xFF) / 10.0 // byte 9, always x10 (100 -> 10.0 km/h)
+            speedKmh = leUInt(f.data, 9, 2) / 10.0 // bytes 9-10, LE, x10 (100 -> 10.0 km/h); one byte would overflow at 25.5
         )
     }
 
