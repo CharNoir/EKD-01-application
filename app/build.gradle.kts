@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.adilet.ekd01"
+    namespace = "com.char_noir.ekd01"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.adilet.ekd01"
+        applicationId = "com.char_noir.ekd01"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

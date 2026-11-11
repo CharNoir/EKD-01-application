@@ -4,7 +4,7 @@
 
     <TextView android:id="@+id/chartTitle" style="@style/CardTitle" android:paddingBottom="0dp" />
     <TextView android:id="@+id/chartRange" style="@style/HintText" android:paddingBottom="6dp" />
-    <com.adilet.ekd01.LineChartView
+    <com.char_noir.ekd01.LineChartView
         android:id="@+id/chartView"
         android:layout_width="match_parent"
         android:layout_height="170dp" />

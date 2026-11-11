@@ -55,7 +55,7 @@
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.adilet.ekd01.fileprovider"
+            android:authorities="com.char_noir.ekd01.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
