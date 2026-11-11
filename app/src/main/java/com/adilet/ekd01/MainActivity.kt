@@ -61,7 +61,7 @@ private fun formatRawBytes(data: ByteArray, known: Map<Int, String>, hex: Boolea
 
 class MainActivity : AppCompatActivity() {
 
-    private enum class Screen { MAIN, SETTINGS, DEVELOPER, HISTORY, HISTORY_DETAIL, DEVICES }
+    private enum class Screen { MAIN, SETTINGS, DEVELOPER, HISTORY, HISTORY_DETAIL, DEVICES, KNOCKS }
     private var currentScreen: Screen = Screen.MAIN
 
     // Bike selector: addresses of the bikes in the list (so a search does not offer them again), and
@@ -119,7 +119,6 @@ class MainActivity : AppCompatActivity() {
     private var rawHexMode = true
     private var rawT1View: TextView? = null
     private var analysisView: TextView? = null
-    private var gestureStatus: TextView? = null
     private var lastAnalysisAt = 0L
     private var rawT9View: TextView? = null
 
@@ -145,8 +144,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onGesture(sequence: String) {
-            Toast.makeText(this@MainActivity, getString(R.string.gesture_toast, sequence), Toast.LENGTH_SHORT).show()
-            updateGestureStatus()
+            Toast.makeText(this@MainActivity, getString(R.string.knock_toast, sequence), Toast.LENGTH_SHORT).show()
         }
 
         override fun onTelemetry9(t: Protocol.Telemetry9) {
@@ -164,6 +162,13 @@ class MainActivity : AppCompatActivity() {
             // this inner box, by coordinates, with no focus involved.
             logScroll?.post { logScroll?.scrollTo(0, lv.height) }
         }
+    }
+
+    // Asked when a knock whose action needs a permission (e.g. calling) is saved.
+    private val knockPermissionLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { granted ->
+        if (!granted.values.all { it }) Toast.makeText(this, R.string.knock_permission_denied, Toast.LENGTH_LONG).show()
     }
 
     private val permissionLauncher = registerForActivityResult(
@@ -200,7 +205,7 @@ class MainActivity : AppCompatActivity() {
         when (currentScreen) {
             Screen.MAIN -> super.onBackPressed()
             Screen.HISTORY_DETAIL -> navigateTo(Screen.HISTORY)
-            Screen.HISTORY, Screen.DEVICES -> navigateTo(Screen.SETTINGS)
+            Screen.HISTORY, Screen.DEVICES, Screen.KNOCKS -> navigateTo(Screen.SETTINGS)
             else -> navigateTo(Screen.MAIN)
         }
     }
@@ -216,6 +221,7 @@ class MainActivity : AppCompatActivity() {
                 Screen.HISTORY -> buildHistoryScreen()
                 Screen.HISTORY_DETAIL -> buildHistoryDetailScreen()
                 Screen.DEVICES -> buildDevicesScreen()
+                Screen.KNOCKS -> buildKnocksScreen()
             }
         )
     }
@@ -411,6 +417,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         root.findViewById<Button>(R.id.chooseBikeBtn).setOnClickListener { navigateTo(Screen.DEVICES) }
+        root.findViewById<Button>(R.id.openKnocksBtn).setOnClickListener { navigateTo(Screen.KNOCKS) }
 
         val intervalLabel = root.findViewById<TextView>(R.id.recordIntervalLabel)
         val intervalInput = root.findViewById<EditText>(R.id.recordIntervalInput)
@@ -486,27 +493,6 @@ class MainActivity : AppCompatActivity() {
         analysisView = root.findViewById(R.id.analysisView)
         root.findViewById<Button>(R.id.analysisClearBtn).setOnClickListener { TelemetryStats.clear(); updateAnalysis() }
         updateAnalysis()
-
-        gestureStatus = root.findViewById(R.id.gestureStatus)
-        val gestureInput = root.findViewById<EditText>(R.id.gestureSequenceInput)
-        val gestureGap = root.findViewById<EditText>(R.id.gestureGapInput)
-        gestureInput.setText(AssistGesture.sequenceText)
-        gestureGap.setText(AssistGesture.maxGapMs.toString())
-        root.findViewById<CheckBox>(R.id.gestureEnabledCheckbox).apply {
-            isChecked = AssistGesture.isEnabled
-            setOnCheckedChangeListener { _, checked -> AssistGesture.setEnabled(this@MainActivity, checked) }
-        }
-        root.findViewById<Button>(R.id.gestureSaveBtn).setOnClickListener {
-            val gap = gestureGap.text.toString().toIntOrNull() ?: -1
-            val ok = AssistGesture.configure(this, gestureInput.text.toString(), gap)
-            Toast.makeText(
-                this,
-                if (ok) getString(R.string.gesture_saved, AssistGesture.sequenceText, AssistGesture.maxGapMs) else getString(R.string.gesture_invalid),
-                Toast.LENGTH_SHORT
-            ).show()
-            if (ok) gestureInput.setText(AssistGesture.sequenceText)
-        }
-        updateGestureStatus()
 
         root.findViewById<Button>(R.id.lightOnBtn).setOnClickListener {
             // The display's light register (0xA6) is a TOGGLE, not a set - it flips
@@ -596,6 +582,102 @@ class MainActivity : AppCompatActivity() {
         root.findViewById<Button>(R.id.clearLogBtn).setOnClickListener { BikeLink.clearLog(); lv.text = "" }
 
         return root
+    }
+
+    // ---------- Knocks screen: assist-level knocks and the action each one runs (res/layout/screen_knocks.xml) ----------
+
+    private fun buildKnocksScreen(): View {
+        val root = layoutInflater.inflate(R.layout.screen_knocks, null)
+        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.SETTINGS) }
+        val list = root.findViewById<LinearLayout>(R.id.knockList)
+        val knocks = KnockStore.all
+        root.findViewById<TextView>(R.id.knocksEmpty).visibility = if (knocks.isEmpty()) View.VISIBLE else View.GONE
+        for (k in knocks) list.addView(buildKnockItem(k, list))
+        root.findViewById<Button>(R.id.newKnockBtn).setOnClickListener { showKnockDialog(null) }
+        return root
+    }
+
+    private fun buildKnockItem(k: Knock, parent: android.view.ViewGroup): View {
+        val item = layoutInflater.inflate(R.layout.item_knock, parent, false)
+        val action = KnockActions.byId(k.actionId)
+        item.findViewById<TextView>(R.id.knockSequence).text = k.sequenceText
+        item.findViewById<TextView>(R.id.knockAction).text =
+            (action?.let { getString(it.nameRes) } ?: k.actionId) + (k.parameter?.let { " · $it" } ?: "")
+        item.findViewById<TextView>(R.id.knockSummary).text = getString(R.string.knock_gap_summary, k.gapMs)
+        item.findViewById<CheckBox>(R.id.knockEnabled).apply {
+            isChecked = k.enabled
+            setOnCheckedChangeListener { _, checked -> KnockStore.setEnabled(this@MainActivity, k.id, checked) }
+        }
+        item.findViewById<Button>(R.id.knockEditBtn).setOnClickListener { showKnockDialog(k) }
+        item.findViewById<Button>(R.id.knockDeleteBtn).setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.knock_delete_title)
+                .setMessage("${k.sequenceText}: " + (action?.let { getString(it.nameRes) } ?: k.actionId))
+                .setPositiveButton(R.string.knock_delete) { _, _ ->
+                    KnockStore.delete(this, k.id)
+                    navigateTo(Screen.KNOCKS)
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+        return item
+    }
+
+    /** Editor for a new knock ([existing] = null) or an existing one. */
+    private fun showKnockDialog(existing: Knock?) {
+        val view = layoutInflater.inflate(R.layout.dialog_knock, null)
+        val seqInput = view.findViewById<EditText>(R.id.knockSequenceInput)
+        val gapInput = view.findViewById<EditText>(R.id.knockGapInput)
+        val spinner = view.findViewById<Spinner>(R.id.knockActionSpinner)
+        val paramInput = view.findViewById<EditText>(R.id.knockParamInput)
+        val actions = KnockActions.all
+
+        spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, actions.map { getString(it.nameRes) })
+        fun updateParameterField() {
+            val a = actions[spinner.selectedItemPosition]
+            paramInput.visibility = if (a.needsParameter) View.VISIBLE else View.GONE
+            a.parameterHintRes?.let { paramInput.hint = getString(it) }
+            paramInput.inputType = a.parameterInputType
+        }
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, v: View?, position: Int, id: Long) = updateParameterField()
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        seqInput.setText(existing?.sequenceText ?: "")
+        gapInput.setText((existing?.gapMs ?: KnockStore.DEFAULT_GAP_MS).toString())
+        existing?.let { e ->
+            val i = actions.indexOfFirst { it.id == e.actionId }
+            if (i >= 0) spinner.setSelection(i)
+            paramInput.setText(e.parameter ?: "")
+        }
+        updateParameterField()
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.knock_edit_title)
+            .setView(view)
+            .setPositiveButton(R.string.save, null) // set below, so errors keep the dialog open
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                fun error(res: Int, vararg args: Any) = Toast.makeText(this, getString(res, *args), Toast.LENGTH_LONG).show()
+                val sequence = KnockStore.parseSequence(seqInput.text.toString()) ?: return@setOnClickListener error(R.string.knock_error_sequence)
+                val gap = gapInput.text.toString().toIntOrNull()
+                if (gap == null || gap !in KnockStore.MIN_GAP_MS..KnockStore.MAX_GAP_MS) return@setOnClickListener error(R.string.knock_error_gap)
+                val action = actions[spinner.selectedItemPosition]
+                val parameter = if (action.needsParameter) action.normalizeParameter(paramInput.text.toString()) else null
+                if (action.needsParameter && parameter == null) return@setOnClickListener error(R.string.knock_error_param)
+                KnockStore.conflictWith(sequence, existing?.id)?.let { return@setOnClickListener error(R.string.knock_error_conflict, it.sequenceText) }
+
+                KnockStore.upsert(this, Knock(existing?.id ?: KnockStore.newId(), sequence, gap, action.id, parameter, existing?.enabled ?: true))
+                val missing = action.missingPermissions(this)
+                if (missing.isNotEmpty()) knockPermissionLauncher.launch(missing.toTypedArray())
+                dialog.dismiss()
+                navigateTo(Screen.KNOCKS)
+            }
+        }
+        dialog.show()
     }
 
     // ---------- Devices screen: choose, rename, add or forget bikes (res/layout/screen_devices.xml) ----------
@@ -900,12 +982,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------- Shared small helpers ----------
-
-    private fun updateGestureStatus() {
-        val t = AssistGesture.lastTriggeredAt
-        gestureStatus?.text = if (t == 0L) getString(R.string.gesture_never)
-        else getString(R.string.gesture_last, java.text.DateFormat.getTimeInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(t)))
-    }
 
     /** Telemetry rates and the recent assist-level changes (Developer screen). [throttle] = at most twice a second. */
     private fun updateAnalysis(throttle: Boolean = false) {

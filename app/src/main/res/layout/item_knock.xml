@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/CardContainer">
+
+    <TextView android:id="@+id/knockSequence" style="@style/CardTitle" />
+    <TextView android:id="@+id/knockAction" style="@style/BodyText" />
+    <TextView android:id="@+id/knockSummary" style="@style/HintText" />
+    <CheckBox
+        android:id="@+id/knockEnabled"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_primary"
+        android:text="@string/knock_enabled" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <Button android:id="@+id/knockEditBtn" style="@style/AmberButton.Row" android:text="@string/knock_edit" />
+        <Button android:id="@+id/knockDeleteBtn" style="@style/AmberButton.Row" android:layout_marginStart="8dp" android:text="@string/knock_delete" />
+    </LinearLayout>
+</LinearLayout>

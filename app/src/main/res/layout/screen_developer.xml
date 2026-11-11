@@ -35,22 +35,6 @@
             <Button android:id="@+id/analysisClearBtn" style="@style/AmberButton" android:layout_marginTop="8dp" android:text="@string/analysis_clear" />
         </LinearLayout>
 
-        <!-- Assist knock (secret code on the stock controls) -->
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/gesture_title" />
-            <TextView style="@style/HintText" android:paddingBottom="6dp" android:text="@string/gesture_hint" />
-            <CheckBox
-                android:id="@+id/gestureEnabledCheckbox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text_primary"
-                android:text="@string/gesture_enabled" />
-            <EditText android:id="@+id/gestureSequenceInput" style="@style/StyledEditText" android:hint="@string/gesture_sequence_hint" android:inputType="text" />
-            <EditText android:id="@+id/gestureGapInput" style="@style/StyledEditText" android:hint="@string/gesture_gap_hint" android:inputType="number" />
-            <Button android:id="@+id/gestureSaveBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/gesture_save" />
-            <TextView android:id="@+id/gestureStatus" style="@style/HintText" android:paddingTop="6dp" />
-        </LinearLayout>
-
         <LinearLayout style="@style/CardContainer">
             <TextView style="@style/CardTitle" android:text="@string/light_title" />
             <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">

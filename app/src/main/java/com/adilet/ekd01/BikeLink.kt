@@ -112,7 +112,7 @@ object BikeLink {
         if (!::appContext.isInitialized) {
             appContext = context.applicationContext
             BikeRecorder.start(appContext)
-            AssistGesture.load(appContext)
+            KnockStore.load(appContext)
         }
     }
 
@@ -137,14 +137,14 @@ object BikeLink {
 
     private fun str(id: Int, vararg args: Any): String = appContext.getString(id, *args)
 
-    /** An assist-level knock was recognized ([AssistGesture]); listeners are told on the main thread. */
+    /** An assist-level knock was recognized ([KnockDetector]); listeners are told on the main thread. */
     fun notifyGesture(sequence: String) = main.post { listeners.forEach { it.onGesture(sequence) } }
 
     private fun setState(s: State) {
         if (state == s) return
         state = s
         if (s == State.DISCONNECTED) {
-            AssistGesture.reset()
+            KnockDetector.reset()
             TelemetryStats.onDisconnect()
         }
         BikeRecorder.onState(s, connectedAddress)
@@ -496,7 +496,7 @@ object BikeLink {
                         lastT1Raw = f.data
                         val elapsed = SystemClock.elapsedRealtime()
                         TelemetryStats.onT1(t1.assistLevel, elapsed, System.currentTimeMillis())
-                        AssistGesture.onLevel(appContext, t1.assistLevel, elapsed)
+                        KnockDetector.onLevel(appContext, t1.assistLevel, elapsed)
                         BikeRecorder.onTelemetry1(t1)
                         main.post { listeners.forEach { it.onTelemetry1(t1) } }
                         if (showTelemetryLog) {

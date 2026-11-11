@@ -58,6 +58,12 @@
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="@string/knocks_title" />
+            <TextView style="@style/HintText" android:paddingBottom="6dp" android:text="@string/knocks_settings_hint" />
+            <Button android:id="@+id/openKnocksBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/knocks_open" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
             <TextView style="@style/CardTitle" android:text="@string/record_title" />
             <TextView android:id="@+id/recordIntervalLabel" style="@style/BodyText" android:textSize="13sp" />
             <EditText android:id="@+id/recordIntervalInput" style="@style/StyledEditText" android:hint="@string/record_interval_hint" android:inputType="number" />
