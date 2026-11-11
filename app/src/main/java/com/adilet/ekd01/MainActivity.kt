@@ -118,6 +118,9 @@ class MainActivity : AppCompatActivity() {
     // watch every byte of the last T1/T9 packet live, to hunt for an undecoded speed field.
     private var rawHexMode = true
     private var rawT1View: TextView? = null
+    private var analysisView: TextView? = null
+    private var gestureStatus: TextView? = null
+    private var lastAnalysisAt = 0L
     private var rawT9View: TextView? = null
 
     // Settings screen: "Background execution enabled" checkbox.
@@ -138,6 +141,12 @@ class MainActivity : AppCompatActivity() {
             odoLabel?.text = getString(R.string.odo_value, t.odometerKm)
             mainTripDistLabel?.text = getString(R.string.distance_km, t.tripKm)
             updateRawViews()
+            updateAnalysis(throttle = true)
+        }
+
+        override fun onGesture(sequence: String) {
+            Toast.makeText(this@MainActivity, getString(R.string.gesture_toast, sequence), Toast.LENGTH_SHORT).show()
+            updateGestureStatus()
         }
 
         override fun onTelemetry9(t: Protocol.Telemetry9) {
@@ -473,6 +482,31 @@ class MainActivity : AppCompatActivity() {
         root.findViewById<Button>(R.id.rawHexBtn).setOnClickListener { rawHexMode = true; updateRawViews() }
         root.findViewById<Button>(R.id.rawDecimalBtn).setOnClickListener { rawHexMode = false; updateRawViews() }
         updateRawViews()
+
+        analysisView = root.findViewById(R.id.analysisView)
+        root.findViewById<Button>(R.id.analysisClearBtn).setOnClickListener { TelemetryStats.clear(); updateAnalysis() }
+        updateAnalysis()
+
+        gestureStatus = root.findViewById(R.id.gestureStatus)
+        val gestureInput = root.findViewById<EditText>(R.id.gestureSequenceInput)
+        val gestureGap = root.findViewById<EditText>(R.id.gestureGapInput)
+        gestureInput.setText(AssistGesture.sequenceText)
+        gestureGap.setText(AssistGesture.maxGapMs.toString())
+        root.findViewById<CheckBox>(R.id.gestureEnabledCheckbox).apply {
+            isChecked = AssistGesture.isEnabled
+            setOnCheckedChangeListener { _, checked -> AssistGesture.setEnabled(this@MainActivity, checked) }
+        }
+        root.findViewById<Button>(R.id.gestureSaveBtn).setOnClickListener {
+            val gap = gestureGap.text.toString().toIntOrNull() ?: -1
+            val ok = AssistGesture.configure(this, gestureInput.text.toString(), gap)
+            Toast.makeText(
+                this,
+                if (ok) getString(R.string.gesture_saved, AssistGesture.sequenceText, AssistGesture.maxGapMs) else getString(R.string.gesture_invalid),
+                Toast.LENGTH_SHORT
+            ).show()
+            if (ok) gestureInput.setText(AssistGesture.sequenceText)
+        }
+        updateGestureStatus()
 
         root.findViewById<Button>(R.id.lightOnBtn).setOnClickListener {
             // The display's light register (0xA6) is a TOGGLE, not a set - it flips
@@ -866,6 +900,42 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------- Shared small helpers ----------
+
+    private fun updateGestureStatus() {
+        val t = AssistGesture.lastTriggeredAt
+        gestureStatus?.text = if (t == 0L) getString(R.string.gesture_never)
+        else getString(R.string.gesture_last, java.text.DateFormat.getTimeInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(t)))
+    }
+
+    /** Telemetry rates and the recent assist-level changes (Developer screen). [throttle] = at most twice a second. */
+    private fun updateAnalysis(throttle: Boolean = false) {
+        val view = analysisView ?: return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (throttle && now - lastAnalysisAt < 500) return
+        lastAnalysisAt = now
+        val s = TelemetryStats.snapshot()
+        fun rate(name: String, r: TelemetryStats.RateStats?) =
+            if (r == null) getString(R.string.analysis_no_rate, name)
+            else getString(R.string.analysis_rate, name, r.perSecond, r.avgMs, r.minMs, r.maxMs, r.count)
+        val timeFormat = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+        val sb = StringBuilder()
+        sb.append(rate("T1", s.t1)).append('\n').append(rate("T9", s.t9)).append("\n\n")
+        sb.append(getString(R.string.analysis_changes_title)).append('\n')
+        if (s.changes.isEmpty()) sb.append(getString(R.string.analysis_none))
+        for (c in s.changes) {
+            sb.append(
+                getString(
+                    R.string.analysis_change_line,
+                    timeFormat.format(java.util.Date(c.wallMs)),
+                    c.from?.toString() ?: dash,
+                    c.to,
+                    c.sinceLastChangeMs?.let { getString(R.string.analysis_since_change, it) } ?: "",
+                    c.packetGapMs?.let { getString(R.string.analysis_packet_gap, it) } ?: ""
+                )
+            ).append('\n')
+        }
+        view.text = sb.toString()
+    }
 
     private fun updateRawViews() {
         rawT1View?.text = BikeLink.lastT1Raw?.let { formatRawBytes(it, T1_KNOWN_BYTES, rawHexMode) } ?: getString(R.string.raw_no_t1)

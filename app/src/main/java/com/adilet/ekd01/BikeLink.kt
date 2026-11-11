@@ -50,6 +50,7 @@ object BikeLink {
         fun onTelemetry1(t: Protocol.Telemetry1) {}
         fun onTelemetry9(t: Protocol.Telemetry9) {}
         fun onLogLine(line: String) {}
+        fun onGesture(sequence: String) {}
     }
 
     private lateinit var appContext: Context
@@ -111,6 +112,7 @@ object BikeLink {
         if (!::appContext.isInitialized) {
             appContext = context.applicationContext
             BikeRecorder.start(appContext)
+            AssistGesture.load(appContext)
         }
     }
 
@@ -135,9 +137,16 @@ object BikeLink {
 
     private fun str(id: Int, vararg args: Any): String = appContext.getString(id, *args)
 
+    /** An assist-level knock was recognized ([AssistGesture]); listeners are told on the main thread. */
+    fun notifyGesture(sequence: String) = main.post { listeners.forEach { it.onGesture(sequence) } }
+
     private fun setState(s: State) {
         if (state == s) return
         state = s
+        if (s == State.DISCONNECTED) {
+            AssistGesture.reset()
+            TelemetryStats.onDisconnect()
+        }
         BikeRecorder.onState(s, connectedAddress)
         main.post { listeners.forEach { it.onStateChanged(s) } }
     }
@@ -485,6 +494,9 @@ object BikeLink {
                     if (t1 != null) {
                         lastT1 = t1
                         lastT1Raw = f.data
+                        val elapsed = SystemClock.elapsedRealtime()
+                        TelemetryStats.onT1(t1.assistLevel, elapsed, System.currentTimeMillis())
+                        AssistGesture.onLevel(appContext, t1.assistLevel, elapsed)
                         BikeRecorder.onTelemetry1(t1)
                         main.post { listeners.forEach { it.onTelemetry1(t1) } }
                         if (showTelemetryLog) {
@@ -493,6 +505,7 @@ object BikeLink {
                     } else if (t9 != null) {
                         lastT9 = t9
                         lastT9Raw = f.data
+                        TelemetryStats.onT9(SystemClock.elapsedRealtime())
                         BikeRecorder.onTelemetry9(t9)
                         main.post { listeners.forEach { it.onTelemetry9(t9) } }
                         if (showTelemetryLog) {

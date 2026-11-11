@@ -8,6 +8,28 @@
     <string name="raw_t9_hint" translatable="false">T9 - ride time/avg/max speed/bt-unlock (16 bytes):</string>
     <string name="raw_no_t1" translatable="false">No T1 packet yet.</string>
     <string name="raw_no_t9" translatable="false">No T9 packet yet.</string>
+    <string name="analysis_title" translatable="false">Assist level reporting</string>
+    <string name="analysis_hint" translatable="false">How often the display sends telemetry, and when the assist level changed. Press + / - on the stock controls and watch.</string>
+    <string name="analysis_rate" translatable="false">%1$s: %2$.1f packets/s · avg %3$.0f ms · min %4$d · max %5$d (last %6$d)</string>
+    <string name="analysis_no_rate" translatable="false">%1$s: not enough packets yet</string>
+    <string name="analysis_changes_title" translatable="false">Assist changes, newest first:</string>
+    <string name="analysis_change_line" translatable="false">%1$s  %2$s → %3$d%4$s%5$s</string>
+    <string name="analysis_since_change" translatable="false">  +%1$d ms</string>
+    <string name="analysis_packet_gap" translatable="false">  (packet gap %1$d ms)</string>
+    <string name="analysis_none" translatable="false">No assist changes yet.</string>
+    <string name="analysis_clear" translatable="false">Clear</string>
+    <string name="gesture_title" translatable="false">Assist knock</string>
+    <string name="gesture_hint" translatable="false">Change the assist level in this order on the stock controls (levels 0-5, 2-12 steps), each step within the time limit, to trigger the action (now: buzz + log line).</string>
+    <string name="gesture_enabled" translatable="false">Knock enabled</string>
+    <string name="gesture_sequence_hint" translatable="false">Sequence, e.g. 5-4-5-4-5-4</string>
+    <string name="gesture_gap_hint" translatable="false">Max time between steps (ms, 200-10000)</string>
+    <string name="gesture_save" translatable="false">Save knock</string>
+    <string name="gesture_saved" translatable="false">Saved: %1$s, %2$d ms</string>
+    <string name="gesture_invalid" translatable="false">Use 2-12 levels from 0 to 5 and 200-10000 ms.</string>
+    <string name="gesture_last" translatable="false">Last triggered: %1$s</string>
+    <string name="gesture_never" translatable="false">Not triggered yet.</string>
+    <string name="gesture_toast" translatable="false">Knock recognized: %1$s</string>
+    <string name="log_gesture" translatable="false">Assist knock recognized: %1$s</string>
     <string name="light_title">Light</string>
     <string name="light_on">On</string>
     <string name="light_off">Off</string>
