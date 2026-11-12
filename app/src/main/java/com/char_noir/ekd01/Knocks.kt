@@ -29,6 +29,7 @@ data class Knock(
 object KnockStore {
     private const val PREFS = "ekd01_prefs"
     private const val KEY = "knocks_json"
+    private const val KEY_REJECT_AMBIGUOUS = "knocks_reject_ambiguous"
 
     const val MIN_STEPS = 2
     const val MAX_STEPS = 12
@@ -41,8 +42,19 @@ object KnockStore {
 
     val all: List<Knock> get() = items
 
+    /** When true (default) a knock that overlaps another one (see [conflictWith]) cannot be saved. */
+    @Volatile var rejectAmbiguous: Boolean = true
+        private set
+
+    fun setRejectAmbiguous(ctx: Context, value: Boolean) {
+        rejectAmbiguous = value
+        ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_REJECT_AMBIGUOUS, value).apply()
+    }
+
     fun load(ctx: Context) = synchronized(lock) {
-        val text = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)
+        val prefs = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        rejectAmbiguous = prefs.getBoolean(KEY_REJECT_AMBIGUOUS, true)
+        val text = prefs.getString(KEY, null)
         items = if (text == null) emptyList() else try {
             val arr = JSONArray(text)
             (0 until arr.length()).mapNotNull { i ->
@@ -90,15 +102,36 @@ object KnockStore {
         save(ctx, items.map { if (it.id == id) it.copy(enabled = enabled) else it })
     }
 
-    /** Levels 0-5 separated by "-", "," or spaces; [MIN_STEPS] to [MAX_STEPS] of them. Null if it does not parse. */
+    /**
+     * Levels 0-5, [MIN_STEPS] to [MAX_STEPS] of them. Either plain digits ("545454") or separated by
+     * "-", "," or spaces ("5-4-5"). Null if it does not parse.
+     */
     fun parseSequence(text: String): List<Int>? {
-        val parts = text.split('-', ',', ' ', ';').filter { it.isNotBlank() }.map { it.trim().toIntOrNull() ?: return null }
+        val trimmed = text.trim()
+        val parts = if (trimmed.isNotEmpty() && trimmed.all { it in '0'..'9' }) {
+            trimmed.map { it - '0' }
+        } else {
+            text.split('-', ',', ' ', ';').filter { it.isNotBlank() }.map { it.trim().toIntOrNull() ?: return null }
+        }
         return parts.takeIf { it.size in MIN_STEPS..MAX_STEPS && it.all { v -> v in 0..5 } }
     }
 
     /**
-     * A saved knock whose sequence contains [sequence] or is contained in it (this includes being equal).
-     * Such pairs cannot work: the shorter one would always fire first. [ignoreId] = the knock being edited.
+     * Why [sequence] can never be saved, as a string resource, or null if it is fine. These hold regardless of
+     * the "ambiguous codes" flag: a repeated level can never match (only changes are reported), and a plain
+     * ascending or descending staircase (0-1-2-3, 5-4-3) happens by simply pressing + or - a few times.
+     */
+    fun problem(sequence: List<Int>): Int? {
+        if (sequence.zipWithNext().any { (a, b) -> a == b }) return R.string.knock_error_repeat
+        val steps = sequence.zipWithNext { a, b -> b - a }
+        if (steps.all { it == 1 } || steps.all { it == -1 }) return R.string.knock_error_staircase
+        return null
+    }
+
+    /**
+     * A saved knock whose sequence contains [sequence] or is contained in it (this includes being equal), anywhere
+     * (start, middle or end). Such pairs cannot work: the shorter one would always fire first.
+     * [ignoreId] = the knock being edited.
      */
     fun conflictWith(sequence: List<Int>, ignoreId: String?): Knock? =
         items.firstOrNull { it.id != ignoreId && (contains(it.sequence, sequence) || contains(sequence, it.sequence)) }

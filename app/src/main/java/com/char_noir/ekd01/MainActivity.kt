@@ -626,6 +626,10 @@ class MainActivity : AppCompatActivity() {
         root.findViewById<TextView>(R.id.knocksEmpty).visibility = if (knocks.isEmpty()) View.VISIBLE else View.GONE
         for (k in knocks) list.addView(buildKnockItem(k, list))
         root.findViewById<Button>(R.id.newKnockBtn).setOnClickListener { showKnockDialog(null) }
+        root.findViewById<CheckBox>(R.id.knocksRejectAmbiguous).apply {
+            isChecked = KnockStore.rejectAmbiguous
+            setOnCheckedChangeListener { _, checked -> KnockStore.setRejectAmbiguous(this@MainActivity, checked) }
+        }
         return root
     }
 
@@ -676,7 +680,7 @@ class MainActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        seqInput.setText(existing?.sequenceText ?: "")
+        seqInput.setText(existing?.sequence?.joinToString("") ?: "")
         gapInput.setText((existing?.gapMs ?: KnockStore.DEFAULT_GAP_MS).toString())
         existing?.let { e ->
             val i = actions.indexOfFirst { it.id == e.actionId }
@@ -700,7 +704,8 @@ class MainActivity : AppCompatActivity() {
                 val action = actions[spinner.selectedItemPosition]
                 val parameter = if (action.needsParameter) action.normalizeParameter(paramInput.text.toString()) else null
                 if (action.needsParameter && parameter == null) return@setOnClickListener error(R.string.knock_error_param)
-                KnockStore.conflictWith(sequence, existing?.id)?.let { return@setOnClickListener error(R.string.knock_error_conflict, it.sequenceText) }
+                KnockStore.problem(sequence)?.let { return@setOnClickListener error(it) }
+                if (KnockStore.rejectAmbiguous) KnockStore.conflictWith(sequence, existing?.id)?.let { return@setOnClickListener error(R.string.knock_error_conflict, it.sequenceText) }
 
                 KnockStore.upsert(this, Knock(existing?.id ?: KnockStore.newId(), sequence, gap, action.id, parameter, existing?.enabled ?: true))
                 val missing = action.missingPermissions(this)

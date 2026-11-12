@@ -89,8 +89,10 @@
     <string name="knocks_screen_hint">Change the assist level on the bike\'s controls in this order, quickly, to run the action. The first level is where you start; every following change must come within the time limit.</string>
     <string name="knocks_empty">No knocks yet.</string>
     <string name="knock_new">New knock</string>
+    <string name="knocks_reject_ambiguous">Do not allow ambiguous codes</string>
+    <string name="knocks_reject_ambiguous_hint">Refuses to save a knock that contains another knock, or is contained in one (for example 5-4 inside 1-5-4-2): the shorter one would fire first. Turn off to allow it.</string>
     <string name="knock_edit_title">Knock</string>
-    <string name="knock_sequence_hint">Sequence, e.g. 5-4-5-4-5-4</string>
+    <string name="knock_sequence_hint">Levels 0-5, e.g. 545454</string>
     <string name="knock_gap_hint">Max time between steps (ms)</string>
     <string name="knock_action_label">Action</string>
     <string name="knock_enabled">Enabled</string>
@@ -98,9 +100,11 @@
     <string name="knock_edit">Edit</string>
     <string name="knock_delete">Delete</string>
     <string name="knock_delete_title">Delete this knock?</string>
-    <string name="knock_error_sequence">Use 2 to 12 levels from 0 to 5, like 5-4-5-4.</string>
+    <string name="knock_error_sequence">Use 2 to 12 levels from 0 to 5, like 545454.</string>
     <string name="knock_error_gap">The time limit must be 200 to 10000 ms.</string>
     <string name="knock_error_conflict">Conflicts with another knock (%1$s): one contains the other.</string>
+    <string name="knock_error_repeat">A level cannot repeat right after itself (like 5-5): the bike only reports changes.</string>
+    <string name="knock_error_staircase">Too easy to trigger by accident: the levels only go up or down by one (like 0-1-2-3). Mix the order, for example 0-2-1-3.</string>
     <string name="knock_error_param">Enter a valid value for this action.</string>
     <string name="knock_permission_denied">Without this permission the action cannot run.</string>
     <string name="knock_toast">Knock recognized: %1$s</string>

@@ -23,6 +23,17 @@
                 android:text="@string/knock_new" />
         </LinearLayout>
 
+        <LinearLayout style="@style/CardContainer">
+            <CheckBox
+                android:id="@+id/knocksRejectAmbiguous"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:textColor="@color/text_primary"
+                android:text="@string/knocks_reject_ambiguous" />
+            <TextView style="@style/HintText" android:text="@string/knocks_reject_ambiguous_hint" />
+        </LinearLayout>
+
         <TextView style="@style/CardTitle" android:paddingStart="4dp" android:text="@string/knocks_title" />
         <TextView
             style="@style/HintText"
