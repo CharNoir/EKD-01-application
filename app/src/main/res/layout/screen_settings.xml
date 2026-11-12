@@ -26,6 +26,24 @@
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">
+
+            <TextView
+                style="@style/CardTitle"
+                android:text="@string/knocks_title" />
+
+            <TextView
+                style="@style/HintText"
+                android:paddingBottom="6dp"
+                android:text="@string/knocks_settings_hint" />
+
+            <Button
+                android:id="@+id/openKnocksBtn"
+                style="@style/AmberButton"
+                android:layout_width="match_parent"
+                android:text="@string/knocks_open" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
             <TextView style="@style/CardTitle" android:text="@string/bt_unlock_title" />
             <TextView android:id="@+id/btUnlockLabel" style="@style/BodyText" android:textSize="13sp" tools:text="BT unlock level: 1" />
             <SeekBar android:id="@+id/btUnlockSlider" style="@style/AmberSlider" android:min="1" android:max="5" />
@@ -43,7 +61,7 @@
                 <Button android:id="@+id/unitsKmBtn" style="@style/AmberButton.Row" android:text="@string/units_km" />
                 <Button android:id="@+id/unitsMiBtn" style="@style/AmberButton.Row" android:text="@string/units_mi" />
             </LinearLayout>
-            <EditText android:id="@+id/autoOffInput" style="@style/StyledEditText" android:hint="@string/auto_off_hint" android:inputType="number" />
+            <EditText android:importantForAutofill="no" android:minHeight="48dp" android:id="@+id/autoOffInput" style="@style/StyledEditText" android:hint="@string/auto_off_hint" android:inputType="number" />
             <Button android:id="@+id/setAutoOffBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/set_auto_off" />
         </LinearLayout>
 
@@ -58,19 +76,6 @@
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/knocks_title" />
-            <TextView style="@style/HintText" android:paddingBottom="6dp" android:text="@string/knocks_settings_hint" />
-            <Button android:id="@+id/openKnocksBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/knocks_open" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/record_title" />
-            <TextView android:id="@+id/recordIntervalLabel" style="@style/BodyText" android:textSize="13sp" />
-            <EditText android:id="@+id/recordIntervalInput" style="@style/StyledEditText" android:hint="@string/record_interval_hint" android:inputType="number" />
-            <Button android:id="@+id/setRecordIntervalBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/record_interval_set" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
             <TextView style="@style/CardTitle" android:text="@string/background_title" />
             <CheckBox
                 android:id="@+id/backgroundExecutionCheckbox"
@@ -80,6 +85,30 @@
                 android:text="@string/background_execution_enabled" />
             <TextView style="@style/HintText" android:text="@string/background_hint" />
             <Button android:id="@+id/notificationSettingsBtn" style="@style/AmberButton" android:layout_width="match_parent" android:layout_marginTop="8dp" android:text="@string/notification_settings_button" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
+
+            <TextView
+                style="@style/CardTitle"
+                android:text="@string/record_title" />
+
+            <TextView
+                android:id="@+id/recordIntervalLabel"
+                style="@style/BodyText"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/recordIntervalInput"
+                style="@style/StyledEditText"
+                android:hint="@string/record_interval_hint"
+                android:inputType="number" />
+
+            <Button
+                android:id="@+id/setRecordIntervalBtn"
+                style="@style/AmberButton"
+                android:layout_width="match_parent"
+                android:text="@string/record_interval_set" />
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">

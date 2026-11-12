@@ -42,14 +42,23 @@
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/nav_startstop_title" />
-            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <Button android:id="@+id/navStartBtn" style="@style/AmberButton.Row" android:text="@string/nav_start" />
-                <Button android:id="@+id/navStopBtn" style="@style/AmberButton.Row" android:text="@string/nav_stop" />
-            </LinearLayout>
-        </LinearLayout>
 
-        <LinearLayout style="@style/CardContainer">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/navStartBtn"
+                    style="@style/AmberButton.Row"
+                    android:text="@string/nav_start" />
+
+                <Button
+                    android:id="@+id/navStopBtn"
+                    style="@style/AmberButton.Row"
+                    android:text="@string/nav_stop" />
+            </LinearLayout>
+
             <TextView style="@style/CardTitle" android:text="@string/nav_update_title" />
             <EditText android:importantForAutofill="no" android:minHeight="48dp" android:id="@+id/tmpIconInput" style="@style/StyledEditText" android:hint="@string/hint_tmp_icon" android:inputType="number" />
             <EditText android:importantForAutofill="no" android:minHeight="48dp" android:id="@+id/curRetainInput" style="@style/StyledEditText" android:hint="@string/hint_cur_retain" android:inputType="number" />

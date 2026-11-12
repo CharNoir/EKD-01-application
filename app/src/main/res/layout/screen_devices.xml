@@ -14,6 +14,31 @@
             <Button android:id="@+id/backBtn" style="@style/AmberButton" android:text="@string/back" />
         </LinearLayout>
 
+        <LinearLayout style="@style/CardContainer">
+
+            <TextView
+                style="@style/CardTitle"
+                android:text="@string/devices_add_title" />
+
+            <Button
+                android:id="@+id/scanBtn"
+                style="@style/AmberButton"
+                android:layout_width="match_parent"
+                android:text="@string/devices_scan" />
+
+            <TextView
+                android:id="@+id/scanStatus"
+                style="@style/HintText"
+                android:paddingTop="6dp"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/foundList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
         <TextView style="@style/CardTitle" android:paddingStart="4dp" android:text="@string/devices_title" />
         <TextView
             style="@style/HintText"
@@ -33,17 +58,6 @@
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
-
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/devices_add_title" />
-            <Button android:id="@+id/scanBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/devices_scan" />
-            <TextView android:id="@+id/scanStatus" style="@style/HintText" android:paddingTop="6dp" android:visibility="gone" />
-            <LinearLayout
-                android:id="@+id/foundList"
-                android:orientation="vertical"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>
