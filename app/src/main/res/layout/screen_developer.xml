@@ -36,62 +36,9 @@
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/light_title" />
-            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <Button android:id="@+id/lightOnBtn" style="@style/AmberButton.Row" android:text="@string/light_on" />
-                <Button android:id="@+id/lightOffBtn" style="@style/AmberButton.Row" android:text="@string/light_off" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/assist_level_title" />
-            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <Button android:id="@+id/assist0Btn" style="@style/AmberButton.Row" android:text="@string/digit_0" />
-                <Button android:id="@+id/assist1Btn" style="@style/AmberButton.Row" android:text="@string/digit_1" />
-                <Button android:id="@+id/assist2Btn" style="@style/AmberButton.Row" android:text="@string/digit_2" />
-                <Button android:id="@+id/assist3Btn" style="@style/AmberButton.Row" android:text="@string/digit_3" />
-                <Button android:id="@+id/assist4Btn" style="@style/AmberButton.Row" android:text="@string/digit_4" />
-                <Button android:id="@+id/assist5Btn" style="@style/AmberButton.Row" android:text="@string/digit_5" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/brightness_title" />
-            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <Button android:id="@+id/brightness1Btn" style="@style/AmberButton.Row" android:text="@string/digit_1" />
-                <Button android:id="@+id/brightness2Btn" style="@style/AmberButton.Row" android:text="@string/digit_2" />
-                <Button android:id="@+id/brightness3Btn" style="@style/AmberButton.Row" android:text="@string/digit_3" />
-                <Button android:id="@+id/brightness4Btn" style="@style/AmberButton.Row" android:text="@string/digit_4" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/bt_unlock_title" />
-            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <Button android:id="@+id/btUnlock1Btn" style="@style/AmberButton.Row" android:text="@string/digit_1" />
-                <Button android:id="@+id/btUnlock2Btn" style="@style/AmberButton.Row" android:text="@string/digit_2" />
-                <Button android:id="@+id/btUnlock3Btn" style="@style/AmberButton.Row" android:text="@string/digit_3" />
-                <Button android:id="@+id/btUnlock4Btn" style="@style/AmberButton.Row" android:text="@string/digit_4" />
-                <Button android:id="@+id/btUnlock5Btn" style="@style/AmberButton.Row" android:text="@string/digit_5" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/bike_lock_title" />
-            <TextView style="@style/HintText" android:text="@string/bike_lock_hint" />
-            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <Button android:id="@+id/bikeUnlockBtn" style="@style/AmberButton.Row" android:text="@string/bike_lock_unlock" />
-                <Button android:id="@+id/bikeLockBtn" style="@style/AmberButton.Row" android:text="@string/bike_lock_lock" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/msg_notify_title" />
-            <TextView style="@style/HintText" android:text="@string/msg_notify_hint" />
-            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <Button android:id="@+id/msgNotifyOnBtn" style="@style/AmberButton.Row" android:text="@string/msg_notify_on" />
-                <Button android:id="@+id/msgNotifyOffBtn" style="@style/AmberButton.Row" android:text="@string/msg_notify_off" />
-            </LinearLayout>
+            <TextView style="@style/CardTitle" android:text="@string/cfg_read_title" />
+            <TextView style="@style/HintText" android:text="@string/cfg_read_hint" />
+            <Button android:id="@+id/readConfigBtn" style="@style/AmberButton" android:text="@string/cfg_read_btn" />
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">
@@ -104,13 +51,13 @@
 
         <LinearLayout style="@style/CardContainer">
             <TextView style="@style/CardTitle" android:text="@string/nav_update_title" />
-            <EditText android:id="@+id/tmpIconInput" style="@style/StyledEditText" android:hint="@string/hint_tmp_icon" android:inputType="number" />
-            <EditText android:id="@+id/curRetainInput" style="@style/StyledEditText" android:hint="@string/hint_cur_retain" android:inputType="number" />
-            <EditText android:id="@+id/nextStepDistInput" style="@style/StyledEditText" android:hint="@string/hint_next_step_dist" android:inputType="number" />
-            <EditText android:id="@+id/nextIconInput" style="@style/StyledEditText" android:hint="@string/hint_next_icon" android:inputType="number" />
-            <EditText android:id="@+id/nextNextStepDistInput" style="@style/StyledEditText" android:hint="@string/hint_next_next_step_dist" android:inputType="number" />
-            <EditText android:id="@+id/nextNextIconInput" style="@style/StyledEditText" android:hint="@string/hint_next_next_icon" android:inputType="number" />
-            <EditText android:id="@+id/pathRetainInput" style="@style/StyledEditText" android:hint="@string/hint_path_retain" android:inputType="number" />
+            <EditText android:importantForAutofill="no" android:minHeight="48dp" android:id="@+id/tmpIconInput" style="@style/StyledEditText" android:hint="@string/hint_tmp_icon" android:inputType="number" />
+            <EditText android:importantForAutofill="no" android:minHeight="48dp" android:id="@+id/curRetainInput" style="@style/StyledEditText" android:hint="@string/hint_cur_retain" android:inputType="number" />
+            <EditText android:importantForAutofill="no" android:minHeight="48dp" android:id="@+id/nextStepDistInput" style="@style/StyledEditText" android:hint="@string/hint_next_step_dist" android:inputType="number" />
+            <EditText android:importantForAutofill="no" android:minHeight="48dp" android:id="@+id/nextIconInput" style="@style/StyledEditText" android:hint="@string/hint_next_icon" android:inputType="number" />
+            <EditText android:importantForAutofill="no" android:minHeight="48dp" android:id="@+id/nextNextStepDistInput" style="@style/StyledEditText" android:hint="@string/hint_next_next_step_dist" android:inputType="number" />
+            <EditText android:importantForAutofill="no" android:minHeight="48dp" android:id="@+id/nextNextIconInput" style="@style/StyledEditText" android:hint="@string/hint_next_next_icon" android:inputType="number" />
+            <EditText android:importantForAutofill="no" android:minHeight="48dp" android:id="@+id/pathRetainInput" style="@style/StyledEditText" android:hint="@string/hint_path_retain" android:inputType="number" />
             <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
                 <Button android:id="@+id/navPresetBtn" style="@style/AmberButton.Row" android:text="@string/nav_preset" />
                 <Button android:id="@+id/navSendBtn" style="@style/AmberButton.Row" android:text="@string/nav_send" />
@@ -120,21 +67,11 @@
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/device_settings" />
-            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <Button android:id="@+id/unitsKmBtn2" style="@style/AmberButton.Row" android:text="@string/units_km" />
-                <Button android:id="@+id/unitsMiBtn2" style="@style/AmberButton.Row" android:text="@string/units_mi" />
-            </LinearLayout>
-            <EditText android:id="@+id/autoOffInput2" style="@style/StyledEditText" android:hint="@string/auto_off_hint" android:inputType="number" />
-            <Button android:id="@+id/setAutoOffBtn2" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/set_auto_off" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
             <TextView style="@style/CardTitle" android:text="@string/log_title" />
-            <CheckBox android:id="@+id/telemetryLogCheckbox" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            <CheckBox android:minHeight="48dp" android:id="@+id/telemetryLogCheckbox" android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:textColor="@color/text_primary"
                 android:text="@string/log_telemetry_checkbox" />
-            <CheckBox android:id="@+id/logHistoryCheckbox" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            <CheckBox android:minHeight="48dp" android:id="@+id/logHistoryCheckbox" android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:textColor="@color/text_primary"
                 android:text="@string/log_history_checkbox" />
             <androidx.core.widget.NestedScrollView

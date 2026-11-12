@@ -1,7 +1,7 @@
 # EKD01-TB (BikeGo) BLE protocol
 
 Decoded from an HCI snoop capture plus the BikeGo APK (com.huiye.ebike v2.1.7, with 2.1.0 for the
-navigation classes). Implemented in `app/src/main/java/com/adilet/ekd01/Protocol.kt`.
+navigation classes). Implemented in `app/src/main/java/com/char_noir/ekd01/Protocol.kt`.
 
 ## Transport
 
@@ -32,8 +32,47 @@ CRC16 = `~sum(LEN … last DATA byte) & 0xFFFF`. All 280 frames in the capture v
    (UTC offset in seconds); they turned out not to be needed.
 4. The display then sends telemetry about once a second.
 
-BikeGo also reads A5/18 (device name, e.g. `EKD01_TB_N22`), A5/88, A5/E0 and F1/01 (26-byte settings block)
-at startup. Those reads are not needed by this app and their contents are not decoded.
+BikeGo also reads A5/18 (device name, e.g. `EKD01_TB_N22`), A5/88, A5/E0 and F1/01 at startup. Only F1/01 is
+decoded (next section); the others are not needed by this app.
+
+## Display configuration block (read F1/01, 26 bytes)
+
+BikeGo reads this block once at connect and keeps it as `MeterConfig`. It is a set of feature flags (plus some
+ranges) that BikeGo checks before it uses a function. The Developer screen has a "Read display config" button.
+
+Request (confirmed live, the display answers): `55 AA 01 11 F1 01 01 1A E0 FE`, i.e. LEN 1, SRC `11`, DST `F1`,
+CMD `01`, ARG `01`, DATA `1A` (= 26 bytes wanted). Reply: SRC `F1`, CMD `04`, ARG `01`, 26 data bytes.
+
+EKD01-TB_N22 returned (same on two reads):
+
+```
+00 00 56 07 00 00 0A A8 89 8B 07 0A 14 64 00 2C 01 01 02 32 00 F4 01 01 09 3C
+```
+
+Feature bits, taken from BikeGo's `MeterConfig` getters (Dart assembly; the byte index goes through Smi tagging, so
+treat positions as a best reading). Only `bleUnlock` and `pushNotify` are confirmed by behaviour, and both come out the
+same under the alternative index reading.
+
+| Byte.bit | Flag in BikeGo | This display | Used for |
+|---|---|---|---|
+| 1 | category (whole byte) | 0 | unknown |
+| 3.0 | `hasLampSwitch` | 1 | light toggle (A5/A6) |
+| 3.1 | `hasPushNotify` | 1 | A5/E1 |
+| 3.2 | `hasDateTime` | 1 | time sync |
+| 3.7 | `hasBleUnlock` | **0** | proximity lock/unlock (10/0E) |
+| 4.0 | `hasUpgradeControls` | 0 | |
+| 4.2 | `hasLocate` | 0 | GPS/SIM tracker unit |
+| 4.4 | `syncUnbindFlag` | 0 | |
+| 4.5 | `unlockFlag` | 0 | not understood (may relate to unlock) |
+| 5.0 | `tirePressureFlag` | 0 | A8/00 tyre pressure |
+| 6.3 | `hasUnit` | 1 | A5/E0 |
+| 7.7 | `hasGear` | 1 | A5/A4 |
+| 8.7 | `hasBrightness` | 1 | A5/A7 |
+| 9.7 | `hasBleUnlockLevel` | 1 | A5/E2 |
+| 11.7 | `hasErrorCode` | 0 | A5/78 |
+
+BikeGo also reads min/max values (brightness, gear, BT unlock level) from this block; those bytes (10 to 13 look like
+`07 0A 14 64`) are not decoded.
 
 ## Auth
 
@@ -60,7 +99,7 @@ That means no real security: anyone with it can control an EKD01-TB display over
 | `E2` | BT unlock level | 1 byte, 1..5 | confirmed |
 | `E0` | Units | 1 byte, 0 = km, 1 = mi | confirmed live |
 | `B4` | Auto-off timeout | 2 bytes LE, minutes | confirmed live (1 gave a 1-minute timeout) |
-| `E1` | Phone notification push on/off (BikeGo `switchMeterMsgNotification`) | 1 byte | from BikeGo code, untested |
+| `E1` | Phone notification push on/off (BikeGo `switchMeterMsgNotification`) | 1 byte | display flag `hasPushNotify` is set, but it is only a switch: BikeGo calls it from an `AncsManager` (Apple ANCS, the display reads an iPhone's notifications itself). BikeGo has no code that sends notification text, so nothing to show on Android. Removed from the app |
 
 Other registers (payload lengths come from the app's register table; see `SETTINGS_REGISTERS` in `Protocol.kt`):
 - `A0 A2 A8 AA AC AE B0` are rejected by this firmware (write ack status `02`).
@@ -73,7 +112,7 @@ All frames BikeGo 2.1.7 sends, from its Dart code (`MeterManager`). It has no sp
 
 | ARG | Meaning | DATA | Status |
 |---|---|---|---|
-| `0E` | Bike lock (`openLock` / `lock`) | 1 byte: 1 = unlock, 0 = lock | from BikeGo code, untested (T1 byte 3 should follow) |
+| `0E` | Bike lock (`openLock` / `lock`) | 1 byte: 1 = unlock, 0 = lock | **not supported by this display**: `hasBleUnlock` is 0 in the config block and writing it did nothing. BikeGo only sends it from its RSSI-based proximity unlock when that flag is set. Removed from the app |
 | `3E`, `42`, `46` | Time sync (BikeGo sends all three) | 4-byte LE epoch | `46` verified, the others are not needed |
 | `F1`/`02` | Unbind the display from the phone (`unbindMeter`, DST `F1`) | 1 byte, 0 | from BikeGo code; do not use |
 
@@ -139,4 +178,6 @@ Verified in the capture: 66 %, 40.43 km trip, 3723.37 km odometer.
 ## Open questions
 
 - Current speed is bytes 9–10 (LE, × 0.1); a single byte capped the display at 25.5 km/h. Byte 8 is the unlock flag. Both are owner-reported and not yet checked against a capture above 25 km/h.
-- Contents of the startup reads (A5/88, A5/E0, F1/01 block) are not decoded.
+- The F1/01 block is only partly decoded (see its section); bytes 10 to 13 and the min/max values are open.
+- `unlockFlag` (config byte 4, bit 5) is 0 on this display; unknown whether it relates to the speed-unlock flag in T1 byte 8.
+- The startup reads A5/88 and A5/E0 are not decoded.

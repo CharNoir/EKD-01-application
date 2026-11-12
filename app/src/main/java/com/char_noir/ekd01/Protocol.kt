@@ -86,13 +86,28 @@ object Protocol {
     fun setUnitsMiles(miles: Boolean) = build(PHONE, SETTINGS, 0x02, 0xE0, byteArrayOf(if (miles) 1 else 0))
 
     /**
-     * Bike lock: write to DISPLAY (not SETTINGS), ARG 0x0E, 1 byte: 1 = unlock, 0 = lock.
-     * Taken from BikeGo's MeterManager.openLock / lock; not tested live. T1 byte 3 should follow.
+     * Read-request for the display's 26-byte config block (BikeGo: readColumn(0xF1, 1), read once at connect).
+     * Frame layout assumed to mirror [readRegister]: CMD 01, ARG = register, data = [length]. Unverified.
+     * It holds the feature flags BikeGo checks before it uses lock / notification push / brightness etc.
      */
-    fun setBikeUnlocked(unlocked: Boolean) = build(PHONE, DISPLAY, 0x02, 0x0E, byteArrayOf(if (unlocked) 1 else 0))
+    fun readDisplayConfig() = build(PHONE, SUBSYS_NAV, 0x01, 0x01, byteArrayOf(26))
 
-    /** Phone-notification push on/off (BikeGo "switchMeterMsgNotification"), 1 byte; not tested live. */
-    fun setMessageNotification(on: Boolean) = build(PHONE, SETTINGS, 0x02, 0xE1, byteArrayOf(if (on) 1 else 0))
+    /**
+     * Decodes the feature flags of the config block. Byte and bit positions come from BikeGo's
+     * MeterConfig getters (Dart assembly, index read through Smi tagging), so treat them as a best reading
+     * and compare with the raw hex that is logged next to them.
+     */
+    fun describeConfig(d: ByteArray): String {
+        fun bit(i: Int, b: Int) = if (i < d.size) (d[i].toInt() shr b) and 1 == 1 else false
+        val flags = listOf(
+            "lampSwitch" to bit(3, 0), "pushNotify(E1)" to bit(3, 1), "dateTime" to bit(3, 2), "bleUnlock(0E)" to bit(3, 7),
+            "upgrade" to bit(4, 0), "locate" to bit(4, 2), "syncUnbind" to bit(4, 4), "unlockFlag" to bit(4, 5),
+            "tirePressure" to bit(5, 0), "unit" to bit(6, 3), "gear" to bit(7, 7),
+            "brightness" to bit(8, 7), "bleUnlockLevel(E2)" to bit(9, 7), "errorCode" to bit(11, 7)
+        )
+        val cat = d.getOrNull(1)?.toInt()?.and(0xFF)
+        return "category=$cat  " + flags.joinToString(" ") { (n, v) -> "$n=${if (v) 1 else 0}" }
+    }
 
     /** Auto-off / sleep timeout in minutes (confirmed live: writing 1 gave a 1-minute timeout). */
     fun setAutoOffMinutes(minutes: Int) = build(PHONE, SETTINGS, 0x02, 0xB4, leBytes(minutes.toLong(), 2))

@@ -38,14 +38,9 @@
     <string name="nav_send">Send nav update</string>
     <string name="nav_icon_codes" translatable="false">Icon codes: straight=1 left=2 right=3 slight-left=4 slight-right=5 sharp-left=6 sharp-right=7 uturn=8 complete/none=10</string>
     <string name="log_title">Log</string>
-    <string name="bike_lock_title" translatable="false">Bike lock (10 / 0E)</string>
-    <string name="bike_lock_hint" translatable="false">From BikeGo, untested. Watch T1 byte 3 ("bike unlock") in the raw dump. Try it on a stationary bike only.</string>
-    <string name="bike_lock_unlock" translatable="false">Unlock (1)</string>
-    <string name="bike_lock_lock" translatable="false">Lock (0)</string>
-    <string name="msg_notify_title" translatable="false">Phone notification push (A5 / E1)</string>
-    <string name="msg_notify_hint" translatable="false">From BikeGo, untested. 1 byte, on or off.</string>
-    <string name="msg_notify_on" translatable="false">On (1)</string>
-    <string name="msg_notify_off" translatable="false">Off (0)</string>
+    <string name="cfg_read_title" translatable="false">Display config (F1 / 01)</string>
+    <string name="cfg_read_hint" translatable="false">Reads the 26-byte feature block BikeGo loads at connect. The reply is logged as "CFG" lines (raw bytes + decoded flags). Request layout is a guess, so a missing reply is also a result.</string>
+    <string name="cfg_read_btn" translatable="false">Read display config</string>
     <string name="log_history_checkbox" translatable="false">Save log to history file (kept across connections and restarts)</string>
     <string name="log_history_open" translatable="false">Open log history</string>
     <string name="log_history_title" translatable="false">Log history</string>

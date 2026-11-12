@@ -491,6 +491,11 @@ object BikeLink {
                     }
                     // status==0 (plain success) stays quiet to not spam the log during normal use.
                 }
+                f.cmd == 0x04 && f.arg == 0x01 && f.data.size == 26 -> {
+                    // Reply to Protocol.readDisplayConfig(): raw bytes first so the decode can be checked.
+                    log("CFG src=%02X raw=%s".format(f.src, Protocol.hex(f.data)))
+                    log("CFG " + Protocol.describeConfig(f.data))
+                }
                 else -> {
                     val t1 = Protocol.decodeTelemetry1(f)
                     val t9 = Protocol.decodeTelemetry9(f)

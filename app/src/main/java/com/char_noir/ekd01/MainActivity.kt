@@ -497,38 +497,7 @@ class MainActivity : AppCompatActivity() {
         root.findViewById<Button>(R.id.analysisClearBtn).setOnClickListener { TelemetryStats.clear(); updateAnalysis() }
         updateAnalysis()
 
-        root.findViewById<Button>(R.id.lightOnBtn).setOnClickListener {
-            // The display's light register (0xA6) is a TOGGLE, not a set - it flips
-            // whatever state it's currently in regardless of the payload byte we send.
-            // So only send the frame when we actually need to change state, based on
-            // the light value last reported in telemetry.
-            if (lastT1?.light != true) sendNow(Protocol.setLight(true)) else log(getString(R.string.log_light_already_on))
-        }
-        root.findViewById<Button>(R.id.lightOffBtn).setOnClickListener {
-            if (lastT1?.light != false) sendNow(Protocol.setLight(false)) else log(getString(R.string.log_light_already_off))
-        }
-
-        val assistIds = listOf(R.id.assist0Btn, R.id.assist1Btn, R.id.assist2Btn, R.id.assist3Btn, R.id.assist4Btn, R.id.assist5Btn)
-        for ((level, id) in assistIds.withIndex()) {
-            root.findViewById<Button>(id).setOnClickListener { sendNow(Protocol.setAssist(level)) }
-        }
-
-        val brightnessIds = listOf(R.id.brightness1Btn, R.id.brightness2Btn, R.id.brightness3Btn, R.id.brightness4Btn)
-        for ((idx, id) in brightnessIds.withIndex()) {
-            val level = idx + 1
-            root.findViewById<Button>(id).setOnClickListener { sendNow(Protocol.setBrightness(level)) }
-        }
-
-        val btUnlockIds = listOf(R.id.btUnlock1Btn, R.id.btUnlock2Btn, R.id.btUnlock3Btn, R.id.btUnlock4Btn, R.id.btUnlock5Btn)
-        for ((idx, id) in btUnlockIds.withIndex()) {
-            val level = idx + 1
-            root.findViewById<Button>(id).setOnClickListener { sendNow(Protocol.setBtUnlock(level)) }
-        }
-
-        root.findViewById<Button>(R.id.bikeUnlockBtn).setOnClickListener { sendNow(Protocol.setBikeUnlocked(true)) }
-        root.findViewById<Button>(R.id.bikeLockBtn).setOnClickListener { sendNow(Protocol.setBikeUnlocked(false)) }
-        root.findViewById<Button>(R.id.msgNotifyOnBtn).setOnClickListener { sendNow(Protocol.setMessageNotification(true)) }
-        root.findViewById<Button>(R.id.msgNotifyOffBtn).setOnClickListener { sendNow(Protocol.setMessageNotification(false)) }
+        root.findViewById<Button>(R.id.readConfigBtn).setOnClickListener { sendNow(Protocol.readDisplayConfig()) }
 
         // The real nav subsystem, found by decompiling NavigationMainActivity.v() and
         // S4/b.java's stop-navigation dialog handler. It's cmd=0x03 on DST=0xF1 - a single
@@ -564,14 +533,6 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 log(getString(R.string.log_nav_update_error, e.message ?: ""))
             }
-        }
-
-        root.findViewById<Button>(R.id.unitsKmBtn2).setOnClickListener { sendNow(Protocol.setUnitsMiles(false)) }
-        root.findViewById<Button>(R.id.unitsMiBtn2).setOnClickListener { sendNow(Protocol.setUnitsMiles(true)) }
-        val autoOffInput2 = root.findViewById<EditText>(R.id.autoOffInput2)
-        root.findViewById<Button>(R.id.setAutoOffBtn2).setOnClickListener {
-            val v = autoOffInput2.text.toString().toIntOrNull()
-            if (v == null) log(getString(R.string.enter_timeout_minutes)) else sendNow(Protocol.setAutoOffMinutes(v))
         }
 
         val telemetryCheckbox = root.findViewById<CheckBox>(R.id.telemetryLogCheckbox)
