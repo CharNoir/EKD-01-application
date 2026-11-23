@@ -45,6 +45,12 @@ data class SampleRow(
     val tripMaxKmh: Double?
 )
 
+/** One GPS fix. [ts] is epoch ms (UTC); altitude, accuracy (m) and speed (m/s) may be missing. */
+data class TrackPoint(val ts: Long, val lat: Double, val lon: Double, val altM: Double?, val accM: Double?, val speedMs: Double?)
+
+/** A ride together with its recorded route (possibly empty). */
+data class RideTrack(val session: SessionRow, val points: List<TrackPoint>)
+
 /**
  * Local ride history (file: databases/ekd01.db). All timestamps are epoch milliseconds in UTC.
  *
@@ -53,8 +59,9 @@ data class SampleRow(
  *           odometer at both ends, and whether the battery looks like it was charged since the last
  *           session of the same bike).
  * samples:  one row per minute while connected, plus a final row with status 'disconnected'.
+ * track_points: GPS fixes of a ride (only when GPS recording is switched on in Settings).
  */
-class RideDb(context: Context) : SQLiteOpenHelper(context.applicationContext, "ekd01.db", null, 3) {
+class RideDb(context: Context) : SQLiteOpenHelper(context.applicationContext, "ekd01.db", null, 4) {
 
     private val appContext: Context = context.applicationContext
 
@@ -100,8 +107,27 @@ class RideDb(context: Context) : SQLiteOpenHelper(context.applicationContext, "e
             )
             """.trimIndent()
         )
+        createTrackTable(db)
         db.execSQL("CREATE INDEX idx_samples_session_ts ON samples(session_id, ts)")
         db.execSQL("CREATE INDEX idx_sessions_device ON sessions(device_address, id)")
+    }
+
+    private fun createTrackTable(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE track_points (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+                ts INTEGER NOT NULL,
+                lat REAL NOT NULL,
+                lon REAL NOT NULL,
+                alt_m REAL,
+                acc_m REAL,
+                speed_ms REAL
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX idx_track_session_ts ON track_points(session_id, ts)")
     }
 
     private fun createDevicesTable(db: SQLiteDatabase) {
@@ -141,6 +167,55 @@ class RideDb(context: Context) : SQLiteOpenHelper(context.applicationContext, "e
                 )
             }
         }
+        if (oldVersion < 4) {
+            // v4: optional GPS route per ride.
+            createTrackTable(db)
+        }
+    }
+
+    // ---- GPS route (call from a background thread) -------------------------------------------
+
+    fun insertTrackPoint(sessionId: Long, ts: Long, lat: Double, lon: Double, altM: Double?, accM: Double?, speedMs: Double?) {
+        val values = ContentValues().apply {
+            put("session_id", sessionId); put("ts", ts); put("lat", lat); put("lon", lon)
+            put("alt_m", altM); put("acc_m", accM); put("speed_ms", speedMs)
+        }
+        writableDatabase.insertOrThrow("track_points", null, values)
+    }
+
+    /** Oldest first. */
+    fun loadTrack(sessionId: Long): List<TrackPoint> =
+        readableDatabase.rawQuery(
+            "SELECT ts, lat, lon, alt_m, acc_m, speed_ms FROM track_points WHERE session_id = ? ORDER BY ts, id",
+            arrayOf(sessionId.toString())
+        ).use { c ->
+            buildList<TrackPoint> {
+                while (c.moveToNext()) add(TrackPoint(c.getLong(0), c.getDouble(1), c.getDouble(2), c.doubleOrNull(3), c.doubleOrNull(4), c.doubleOrNull(5)))
+            }
+        }
+
+    /** Ids of rides that have a recorded route. */
+    fun sessionIdsWithTrack(): Set<Long> =
+        readableDatabase.rawQuery("SELECT DISTINCT session_id FROM track_points", null).use { c ->
+            buildSet<Long> { while (c.moveToNext()) add(c.getLong(0)) }
+        }
+
+    /** Rides that started in [fromMs, toMs) and have a route, oldest first. */
+    fun loadTracks(fromMs: Long, toMs: Long): List<RideTrack> {
+        val sessions = readableDatabase.rawQuery(
+            "$SESSION_COLUMNS WHERE connected_at >= ? AND connected_at < ? " +
+                "AND id IN (SELECT session_id FROM track_points) ORDER BY connected_at, id",
+            arrayOf(fromMs.toString(), toMs.toString())
+        ).use { c -> buildList<SessionRow> { while (c.moveToNext()) add(c.toSession()) } }
+        return sessions.map { RideTrack(it, loadTrack(it.id)) }
+    }
+
+    /** Every ride with a route, oldest first. */
+    fun loadAllTracks(): List<RideTrack> = loadTracks(0L, Long.MAX_VALUE)
+
+    /** Deletes all GPS points; rides and their readings stay. */
+    fun clearTracks() {
+        writableDatabase.delete("track_points", null, null)
     }
 
     // ---- Reading (call from a background thread) ---------------------------------------------

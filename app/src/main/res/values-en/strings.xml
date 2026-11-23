@@ -148,4 +148,36 @@
     <string name="chart_trip_time">Trip time (min)</string>
     <string name="chart_avg">Average speed (km/h)</string>
     <string name="chart_max">Max speed (km/h)</string>
+
+    <!-- GPS route (opt-in) -->
+    <string name="gps_title">GPS route</string>
+    <string name="gps_record">Record GPS during rides</string>
+    <string name="gps_record_hint">Opt-in. While the bike is connected, the phone\'s position is saved in this app\'s local database only. Nothing is uploaded. For recording with the screen off, location access must be \"Allow all the time\".</string>
+    <string name="gps_show_map">Show map in ride history</string>
+    <string name="gps_show_map_hint">Off: routes are only recorded, nothing is drawn and the app makes no network requests. On: map tiles are downloaded from OpenStreetMap (it can see which area you look at, not your route) and cached on the phone.</string>
+    <string name="gps_export_all">Export all GPS data (GPX)</string>
+    <string name="gps_delete_all">Delete all GPS data</string>
+    <string name="gps_delete_confirm">Delete all recorded GPS points? Rides stay in the history.</string>
+    <string name="gps_deleted">GPS data deleted.</string>
+    <string name="gps_permission_denied">Location permission is needed to record GPS.</string>
+    <string name="gps_background_title">Record with the screen off?</string>
+    <string name="gps_background_msg">To keep recording while the phone is in your pocket, set location access to \"Allow all the time\" on the next screen. Without it, GPS is recorded only while the app is open.</string>
+    <string name="gps_background_denied">Without \"Allow all the time\", GPS is recorded only while the app is open.</string>
+    <string name="gps_continue">Continue</string>
+    <string name="gps_section_title">GPS route</string>
+    <string name="gps_summary">%1$d points · %2$.1f km</string>
+    <string name="gps_map_off_hint">The map is off (Settings). The route is recorded and can be exported.</string>
+    <string name="gps_export_ride">Export route (GPX)</string>
+    <string name="gps_export_day">Export day (GPX)</string>
+    <string name="gps_no_data_export">No GPS data to export.</string>
+    <string name="gps_export_chooser">Export GPX</string>
+    <string name="gps_export_failed">Could not export: %1$s</string>
+    <string name="gps_marker_start">Start</string>
+    <string name="gps_marker_end">End</string>
+    <string name="gps_legend_item">■ %1$s · %2$.1f km</string>
+    <string name="gps_day_empty">No GPS routes on this day.</string>
+    <string name="history_day_route">Day route</string>
+    <string name="log_gps_started">GPS recording started</string>
+    <string name="log_gps_off">GPS is switched off on the phone; no route is recorded</string>
+    <string name="log_gps_failed">GPS recording failed: %1$s</string>
 </resources>

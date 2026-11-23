@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/CardContainer">
+
+    <TextView style="@style/CardTitle" android:text="@string/gps_section_title" />
+    <TextView android:id="@+id/gpsInfo" style="@style/BodyText" />
+    <TextView android:id="@+id/gpsHint" style="@style/HintText" android:visibility="gone" />
+    <FrameLayout
+        android:id="@+id/gpsMapHolder"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:visibility="gone" />
+    <LinearLayout
+        android:id="@+id/gpsLegend"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+    <Button
+        android:id="@+id/gpsExportBtn"
+        style="@style/AmberButton"
+        android:layout_width="match_parent"
+        android:layout_marginTop="8dp"
+        android:text="@string/gps_export_ride" />
+</LinearLayout>

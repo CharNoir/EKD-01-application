@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.os.Handler
 import android.os.HandlerThread
+import android.location.Location
 import android.os.Looper
 
 /**
@@ -15,6 +16,7 @@ import android.os.Looper
  * - While connected: one sample every N seconds (Settings, default 60).
  * - DISCONNECTED (link lost, tapped, or the app was closed): writes a last sample with the last
  *   known values and status 'disconnected', and closes the session.
+ * - GPS (opt-in, see [GpsTracker]): while a session is open, each fix is stored as a track point.
  * - If the process is killed without a disconnect event, the session is closed at the next app
  *   start using its last sample.
  */
@@ -102,6 +104,30 @@ object BikeRecorder {
         if (started) handler.post { t9 = t }
     }
 
+    /** A GPS fix from [GpsTracker]; stored when a ride is open. */
+    fun onLocation(l: Location) {
+        if (!started) return
+        handler.post {
+            guarded {
+                if (sessionId < 0) return@guarded
+                db.insertTrackPoint(
+                    sessionId, l.time.takeIf { it > 0 } ?: System.currentTimeMillis(), l.latitude, l.longitude,
+                    if (l.hasAltitude()) l.altitude else null,
+                    if (l.hasAccuracy()) l.accuracy.toDouble() else null,
+                    if (l.hasSpeed()) l.speed.toDouble() else null
+                )
+            }
+        }
+    }
+
+    /** The GPS switch changed: start or stop recording for a ride in progress. */
+    fun refreshGps() {
+        if (!started) return
+        handler.post {
+            if (sessionId >= 0 && GpsTracker.isEnabled(appContext)) GpsTracker.start(appContext) else GpsTracker.stop()
+        }
+    }
+
     /**
      * Deletes a bike and its history. Runs on the recorder thread, so it comes after any session
      * write that a just-requested disconnect has queued. [onDone] runs on the main thread.
@@ -129,6 +155,7 @@ object BikeRecorder {
         sessionId = db.writableDatabase.insertOrThrow("sessions", null, values)
         handler.removeCallbacks(tick)
         handler.postDelayed(tick, intervalMs())
+        GpsTracker.start(appContext) // no-op unless GPS recording is switched on and allowed
     }
 
     private fun handleT1(t: Protocol.Telemetry1) {
@@ -150,6 +177,7 @@ object BikeRecorder {
 
     private fun endSession() {
         if (sessionId < 0) return
+        GpsTracker.stop()
         handler.removeCallbacks(tick)
         writeSample(DISCONNECTED)
         val values = ContentValues().apply {

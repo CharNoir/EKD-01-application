@@ -16,6 +16,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.widget.NestedScrollView
+import org.osmdroid.views.MapView
 
 // Runtime colors for things that change programmatically (status text, light-button tint).
 // Static colors for the inflated XML layouts live in res/values/colors.xml instead - these
@@ -62,7 +63,7 @@ private fun formatRawBytes(data: ByteArray, known: Map<Int, String>, hex: Boolea
 
 class MainActivity : AppCompatActivity() {
 
-    private enum class Screen { MAIN, SETTINGS, DEVELOPER, HISTORY, HISTORY_DETAIL, DEVICES, KNOCKS, LOG_HISTORY }
+    private enum class Screen { MAIN, SETTINGS, DEVELOPER, HISTORY, HISTORY_DETAIL, HISTORY_DAY, DEVICES, KNOCKS, LOG_HISTORY }
     private var currentScreen: Screen = Screen.MAIN
 
     // Bike selector: addresses of the bikes in the list (so a search does not offer them again), and
@@ -72,6 +73,10 @@ class MainActivity : AppCompatActivity() {
 
     // History screens: which ride is open, and a thread for database reads.
     private var selectedSessionId: Long = -1
+    private var selectedDayStart: Long = 0
+    private var gpsCheckbox: CheckBox? = null
+    /** The OSM map of the screen being shown (only one at a time); paused/resumed with the activity. */
+    private var mapView: MapView? = null
     private val dbExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
     // The BLE connection itself lives in BikeLink (shared with the background BikeService).
@@ -190,8 +195,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val gpsPermissionLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        if (GpsTracker.hasLocationPermission(this)) {
+            GpsTracker.setEnabled(this, true)
+            askBackgroundLocation()
+        } else {
+            gpsCheckbox?.isChecked = false
+            Toast.makeText(this, R.string.gps_permission_denied, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private val gpsBackgroundLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) {
+        if (!GpsTracker.hasBackgroundPermission(this)) Toast.makeText(this, R.string.gps_background_denied, Toast.LENGTH_LONG).show()
+        refreshServiceType()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        TrackMap.configure(this)
         BikeLink.init(this)
         BikeLink.addListener(linkListener)
         // Registrations can be lost (reboot, update); re-registering is harmless.
@@ -202,10 +227,20 @@ class MainActivity : AppCompatActivity() {
         navigateTo(Screen.MAIN)
     }
 
+    override fun onResume() {
+        super.onResume()
+        mapView?.onResume()
+    }
+
+    override fun onPause() {
+        mapView?.onPause()
+        super.onPause()
+    }
+
     override fun onBackPressed() {
         when (currentScreen) {
             Screen.MAIN -> super.onBackPressed()
-            Screen.HISTORY_DETAIL -> navigateTo(Screen.HISTORY)
+            Screen.HISTORY_DETAIL, Screen.HISTORY_DAY -> navigateTo(Screen.HISTORY)
             Screen.HISTORY, Screen.DEVICES, Screen.KNOCKS -> navigateTo(Screen.SETTINGS)
             Screen.LOG_HISTORY -> navigateTo(Screen.DEVELOPER)
             else -> navigateTo(Screen.MAIN)
@@ -214,6 +249,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun navigateTo(screen: Screen) {
         if (screen != Screen.DEVICES) BikeLink.stopDiscovery()
+        mapView?.onDetach()
+        mapView = null
         currentScreen = screen
         setContentView(
             when (screen) {
@@ -222,6 +259,7 @@ class MainActivity : AppCompatActivity() {
                 Screen.DEVELOPER -> buildDeveloperScreen()
                 Screen.HISTORY -> buildHistoryScreen()
                 Screen.HISTORY_DETAIL -> buildHistoryDetailScreen()
+                Screen.HISTORY_DAY -> buildHistoryDayScreen()
                 Screen.DEVICES -> buildDevicesScreen()
                 Screen.KNOCKS -> buildKnocksScreen()
                 Screen.LOG_HISTORY -> buildLogHistoryScreen()
@@ -438,10 +476,80 @@ class MainActivity : AppCompatActivity() {
 
         root.findViewById<Button>(R.id.notificationSettingsBtn).setOnClickListener { openNotificationSettings() }
 
+        root.findViewById<CheckBox>(R.id.gpsRecordCheckbox).apply {
+            gpsCheckbox = this
+            isChecked = GpsTracker.isEnabled(this@MainActivity)
+            setOnCheckedChangeListener { _, checked ->
+                when {
+                    !checked -> { GpsTracker.setEnabled(this@MainActivity, false); refreshServiceType() }
+                    GpsTracker.hasLocationPermission(this@MainActivity) -> { GpsTracker.setEnabled(this@MainActivity, true); askBackgroundLocation() }
+                    else -> gpsPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                }
+            }
+        }
+        root.findViewById<CheckBox>(R.id.gpsShowMapCheckbox).apply {
+            isChecked = GpsTracker.showMap(this@MainActivity)
+            setOnCheckedChangeListener { _, checked -> GpsTracker.setShowMap(this@MainActivity, checked) }
+        }
+        root.findViewById<Button>(R.id.gpsExportAllBtn).setOnClickListener {
+            dbExecutor.execute {
+                val all = try { RideDb.get(this).loadAllTracks() } catch (e: Exception) { BikeLink.logDbError(e.message ?: e.javaClass.simpleName); emptyList() }
+                exportRides(all, "ekd01_all_" + java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date()) + ".gpx")
+            }
+        }
+        root.findViewById<Button>(R.id.gpsDeleteBtn).setOnClickListener {
+            AlertDialog.Builder(this)
+                .setMessage(R.string.gps_delete_confirm)
+                .setPositiveButton(R.string.gps_delete_all) { _, _ ->
+                    dbExecutor.execute {
+                        try { RideDb.get(this).clearTracks() } catch (e: Exception) { BikeLink.logDbError(e.message ?: e.javaClass.simpleName) }
+                        runOnUiThread { Toast.makeText(this, R.string.gps_deleted, Toast.LENGTH_SHORT).show() }
+                    }
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+
         root.findViewById<Button>(R.id.historyBtn).setOnClickListener { navigateTo(Screen.HISTORY) }
         root.findViewById<Button>(R.id.developerNavBtn).setOnClickListener { navigateTo(Screen.DEVELOPER) }
 
         return root
+    }
+
+    /** After location is allowed: offers "Allow all the time", which recording with the screen off needs. */
+    private fun askBackgroundLocation() {
+        if (GpsTracker.hasBackgroundPermission(this)) { refreshServiceType(); return }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.gps_background_title)
+            .setMessage(R.string.gps_background_msg)
+            .setPositiveButton(R.string.gps_continue) { _, _ -> gpsBackgroundLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION) }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                Toast.makeText(this, R.string.gps_background_denied, Toast.LENGTH_LONG).show()
+                refreshServiceType()
+            }
+            .show()
+    }
+
+    /** Re-declares the foreground service type (it includes "location" only while GPS recording is on and allowed). */
+    private fun refreshServiceType() {
+        if (BikeService.isRunning) BikeService.start(this)
+    }
+
+    /** Builds a GPX file from [rides] and opens the share sheet. Safe to call from any thread. */
+    private fun exportRides(rides: List<RideTrack>, fileName: String) {
+        val withPoints = rides.filter { it.points.isNotEmpty() }
+        if (withPoints.isEmpty()) {
+            runOnUiThread { Toast.makeText(this, R.string.gps_no_data_export, Toast.LENGTH_SHORT).show() }
+            return
+        }
+        dbExecutor.execute {
+            val xml = GpxExport.build(getString(R.string.app_name), withPoints)
+            runOnUiThread {
+                if (isDestroyed) return@runOnUiThread
+                try { GpxExport.share(this, fileName, xml) }
+                catch (e: Exception) { Toast.makeText(this, getString(R.string.gps_export_failed, e.message ?: ""), Toast.LENGTH_LONG).show() }
+            }
+        }
     }
 
     /** Opens the system settings for the service notification (the channel if it exists, otherwise the app's). */
@@ -878,9 +986,11 @@ class MainActivity : AppCompatActivity() {
         val active = BackgroundMode.savedAddress(this)
         dbExecutor.execute {
             var nickname: String? = null
+            var withTrack: Set<Long> = emptySet()
             val sessions: List<SessionRow> = try {
                 val db = RideDb.get(this)
                 if (active != null) nickname = db.deviceNickname(active)
+                withTrack = db.sessionIdsWithTrack()
                 db.loadSessions(active)
             } catch (e: Exception) {
                 BikeLink.logDbError(e.message ?: e.javaClass.simpleName)
@@ -893,7 +1003,22 @@ class MainActivity : AppCompatActivity() {
                     bikeView.visibility = View.VISIBLE
                 }
                 empty.visibility = if (sessions.isEmpty()) View.VISIBLE else View.GONE
+                val dayFormat = java.text.DateFormat.getDateInstance(java.text.DateFormat.FULL)
+                var currentDay = -1L
                 for (s in sessions) {
+                    val day = startOfDay(s.connectedAt)
+                    if (day != currentDay) {
+                        currentDay = day
+                        val header = layoutInflater.inflate(R.layout.item_day_header, list, false)
+                        header.findViewById<TextView>(R.id.dayTitle).text = dayFormat.format(java.util.Date(day))
+                        if (sessions.any { startOfDay(it.connectedAt) == day && it.id in withTrack }) {
+                            header.findViewById<Button>(R.id.dayRouteBtn).apply {
+                                visibility = View.VISIBLE
+                                setOnClickListener { selectedDayStart = day; navigateTo(Screen.HISTORY_DAY) }
+                            }
+                        }
+                        list.addView(header)
+                    }
                     val item = buildSessionItem(s, list)
                     item.setOnClickListener { selectedSessionId = s.id; navigateTo(Screen.HISTORY_DETAIL) }
                     list.addView(item)
@@ -909,26 +1034,111 @@ class MainActivity : AppCompatActivity() {
         val header = root.findViewById<LinearLayout>(R.id.detailHeader)
         val samplesView = root.findViewById<TextView>(R.id.detailSamples)
         val chartList = root.findViewById<LinearLayout>(R.id.chartList)
+        val gpsContainer = root.findViewById<LinearLayout>(R.id.gpsContainer)
         val sessionId = selectedSessionId
         dbExecutor.execute {
             var session: SessionRow? = null
             var samples: List<SampleRow> = emptyList()
+            var track: List<TrackPoint> = emptyList()
             try {
                 val db = RideDb.get(this)
                 session = db.loadSession(sessionId)
                 samples = db.loadSamples(sessionId)
+                track = db.loadTrack(sessionId)
             } catch (e: Exception) {
                 BikeLink.logDbError(e.message ?: e.javaClass.simpleName)
             }
             runOnUiThread {
                 if (isDestroyed || currentScreen != Screen.HISTORY_DETAIL) return@runOnUiThread
                 session?.let { header.addView(buildSessionItem(it, header)) }
+                session?.let { ride ->
+                    val stamp = java.text.SimpleDateFormat("yyyyMMdd_HHmm", java.util.Locale.US).format(java.util.Date(ride.connectedAt))
+                    fillGpsSection(gpsContainer, listOf(RideTrack(ride, track)), "ekd01_ride_$stamp.gpx", R.string.gps_export_ride)
+                }
                 samplesView.text = if (samples.isEmpty()) getString(R.string.history_no_samples)
                 else samples.joinToString("\n") { formatSample(it) }
                 addCharts(chartList, samples)
             }
         }
         return root
+    }
+
+    private fun startOfDay(ms: Long): Long = java.util.Calendar.getInstance().apply {
+        timeInMillis = ms
+        set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+        set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+    }.timeInMillis
+
+    /** All routes of one day on one map. */
+    private fun buildHistoryDayScreen(): View {
+        val root = layoutInflater.inflate(R.layout.screen_history_day, null)
+        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.HISTORY) }
+        val day = selectedDayStart
+        root.findViewById<TextView>(R.id.dayTitle).text =
+            java.text.DateFormat.getDateInstance(java.text.DateFormat.FULL).format(java.util.Date(day))
+        val container = root.findViewById<LinearLayout>(R.id.dayGpsContainer)
+        val empty = root.findViewById<TextView>(R.id.dayEmpty)
+        dbExecutor.execute {
+            val end = java.util.Calendar.getInstance().apply { timeInMillis = day; add(java.util.Calendar.DAY_OF_YEAR, 1) }.timeInMillis
+            val rides = try { RideDb.get(this).loadTracks(day, end) } catch (e: Exception) {
+                BikeLink.logDbError(e.message ?: e.javaClass.simpleName); emptyList()
+            }
+            runOnUiThread {
+                if (isDestroyed || currentScreen != Screen.HISTORY_DAY) return@runOnUiThread
+                val stamp = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date(day))
+                if (rides.none { it.points.isNotEmpty() }) empty.visibility = View.VISIBLE
+                else fillGpsSection(container, rides, "ekd01_day_$stamp.gpx", R.string.gps_export_day)
+            }
+        }
+        return root
+    }
+
+    private fun routeKm(points: List<TrackPoint>): Double {
+        val out = FloatArray(1)
+        var meters = 0.0
+        for (i in 1 until points.size) {
+            android.location.Location.distanceBetween(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon, out)
+            meters += out[0]
+        }
+        return meters / 1000.0
+    }
+
+    /**
+     * The GPS card: summary, the OSM map (only when "Show map" is on; otherwise nothing is drawn),
+     * a colour legend for several rides, and the GPX export button. Skipped when there is no route.
+     */
+    private fun fillGpsSection(container: LinearLayout, rides: List<RideTrack>, fileName: String, exportLabel: Int) {
+        val routes = rides.filter { it.points.isNotEmpty() }
+        if (routes.isEmpty()) return
+        val card = layoutInflater.inflate(R.layout.item_gps, container, false)
+        card.findViewById<TextView>(R.id.gpsInfo).text =
+            getString(R.string.gps_summary, routes.sumOf { it.points.size }, routes.sumOf { routeKm(it.points) })
+        if (GpsTracker.showMap(this)) {
+            val holder = card.findViewById<FrameLayout>(R.id.gpsMapHolder)
+            holder.visibility = View.VISIBLE
+            val map = TrackMap.createMap(this, (320 * resources.displayMetrics.density).toInt())
+            holder.addView(map)
+            mapView = map
+            TrackMap.showRoutes(map, routes, getString(R.string.gps_marker_start), getString(R.string.gps_marker_end))
+            if (routes.size > 1) {
+                val legend = card.findViewById<LinearLayout>(R.id.gpsLegend)
+                legend.visibility = View.VISIBLE
+                val timeFormat = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
+                routes.forEachIndexed { i, r ->
+                    legend.addView(TextView(this).apply {
+                        text = getString(R.string.gps_legend_item, timeFormat.format(java.util.Date(r.session.connectedAt)), routeKm(r.points))
+                        setTextColor(TrackMap.COLORS[i % TrackMap.COLORS.size])
+                    })
+                }
+            }
+        } else {
+            card.findViewById<TextView>(R.id.gpsHint).apply { text = getString(R.string.gps_map_off_hint); visibility = View.VISIBLE }
+        }
+        card.findViewById<Button>(R.id.gpsExportBtn).apply {
+            setText(exportLabel)
+            setOnClickListener { exportRides(routes, fileName) }
+        }
+        container.addView(card)
     }
 
     /** One graph (value against time) per recorded parameter. Parameters with no data are left out. */
@@ -1090,6 +1300,8 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         BikeLink.removeListener(linkListener)
         BikeLink.stopDiscovery()
+        mapView?.onDetach()
+        mapView = null
         dbExecutor.shutdown()
         // Leaving the app drops a connection started here, as before. A connection kept alive by
         // the background service is left alone, and a rotation does not disconnect either.

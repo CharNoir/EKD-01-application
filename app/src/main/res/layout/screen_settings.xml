@@ -88,6 +88,29 @@
         </LinearLayout>
 
         <LinearLayout style="@style/CardContainer">
+            <TextView style="@style/CardTitle" android:text="@string/gps_title" />
+            <CheckBox
+                android:id="@+id/gpsRecordCheckbox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:textColor="@color/text_primary"
+                android:text="@string/gps_record" />
+            <TextView style="@style/HintText" android:text="@string/gps_record_hint" />
+            <CheckBox
+                android:id="@+id/gpsShowMapCheckbox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/text_primary"
+                android:text="@string/gps_show_map" />
+            <TextView style="@style/HintText" android:text="@string/gps_show_map_hint" />
+            <Button android:id="@+id/gpsExportAllBtn" style="@style/AmberButton" android:layout_width="match_parent" android:layout_marginTop="8dp" android:text="@string/gps_export_all" />
+            <Button android:id="@+id/gpsDeleteBtn" style="@style/AmberButton" android:layout_width="match_parent" android:layout_marginTop="8dp" android:text="@string/gps_delete_all" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/CardContainer">
 
             <TextView
                 style="@style/CardTitle"

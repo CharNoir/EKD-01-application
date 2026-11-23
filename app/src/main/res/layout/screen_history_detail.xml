@@ -20,6 +20,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
+        <LinearLayout
+            android:id="@+id/gpsContainer"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
         <TextView style="@style/CardTitle" android:paddingStart="4dp" android:text="@string/charts_title" />
         <LinearLayout
             android:id="@+id/chartList"

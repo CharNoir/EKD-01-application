@@ -286,7 +286,12 @@ class BikeService : Service() {
 
     /** Returns false if the system refused (for example a restart from the background that is not allowed). */
     private fun startInForeground(): Boolean = try {
-        val type = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0
+        var type = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0
+        // A location service is declared only when GPS recording is on and allowed "all the time";
+        // Android 14 refuses it otherwise (and the service would not start at all).
+        if (Build.VERSION.SDK_INT >= 29 && GpsTracker.isEnabled(this) && GpsTracker.canRunInService(this)) {
+            type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+        }
         ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(R.string.notif_waiting), type)
         true
     } catch (e: Exception) {
