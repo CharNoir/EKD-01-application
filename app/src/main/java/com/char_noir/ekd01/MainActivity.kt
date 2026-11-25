@@ -216,6 +216,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        onBackPressedDispatcher.addCallback(this, backCallback)
         TrackMap.configure(this)
         BikeLink.init(this)
         BikeLink.addListener(linkListener)
@@ -240,14 +241,20 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
     }
 
-    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
-    override fun onBackPressed() {
-        when (currentScreen) {
-            Screen.MAIN -> super.onBackPressed()
-            Screen.HISTORY_DETAIL, Screen.HISTORY_DAY -> navigateTo(Screen.HISTORY)
-            Screen.DEVICES, Screen.KNOCKS -> navigateTo(Screen.SETTINGS)
-            Screen.LOG_HISTORY -> navigateTo(Screen.DEVELOPER)
-            else -> navigateTo(Screen.MAIN)
+    /** Android back: each screen goes up one level; on Main the system default (leave the app) runs. */
+    private val backCallback = object : androidx.activity.OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            when (currentScreen) {
+                Screen.MAIN -> {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                }
+                Screen.HISTORY_DETAIL, Screen.HISTORY_DAY -> navigateTo(Screen.HISTORY)
+                Screen.DEVICES, Screen.KNOCKS -> navigateTo(Screen.SETTINGS)
+                Screen.LOG_HISTORY -> navigateTo(Screen.DEVELOPER)
+                else -> navigateTo(Screen.MAIN)
+            }
         }
     }
 
