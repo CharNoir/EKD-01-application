@@ -250,6 +250,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** The activity's content container: screens are inflated against it (not attached) so their root layout attributes apply. */
+    private fun contentRoot(): android.view.ViewGroup = findViewById(android.R.id.content)
+
     private fun navigateTo(screen: Screen) {
         if (screen != Screen.DEVICES) BikeLink.stopDiscovery()
         mapView?.onDetach()
@@ -273,7 +276,7 @@ class MainActivity : AppCompatActivity() {
     // ---------- Main screen: the clean, everyday interface (res/layout/screen_main.xml) ----------
 
     private fun buildMainScreen(): View {
-        val root = layoutInflater.inflate(R.layout.screen_main, null)
+        val root = layoutInflater.inflate(R.layout.screen_main, contentRoot(), false)
 
         connectionIcon = root.findViewById(R.id.connectionIcon)
         updateConnectionIcon()
@@ -398,7 +401,7 @@ class MainActivity : AppCompatActivity() {
     // ---------- Settings screen: the sliders for everyday adjustments (res/layout/screen_settings.xml) ----------
 
     private fun buildSettingsScreen(): View {
-        val root = layoutInflater.inflate(R.layout.screen_settings, null)
+        val root = layoutInflater.inflate(R.layout.screen_settings, contentRoot(), false)
 
         val btUnlockLabel = root.findViewById<TextView>(R.id.btUnlockLabel)
         val btUnlockSlider = root.findViewById<SeekBar>(R.id.btUnlockSlider)
@@ -633,7 +636,7 @@ class MainActivity : AppCompatActivity() {
     // ---------- Developer menu: everything else, basically unchanged (res/layout/screen_developer.xml) ----------
 
     private fun buildDeveloperScreen(): View {
-        val root = layoutInflater.inflate(R.layout.screen_developer, null)
+        val root = layoutInflater.inflate(R.layout.screen_developer, contentRoot(), false)
         root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.MAIN) }
 
         // Raw byte dump of the last T1/T9 packets, for hunting an undecoded speed field.
@@ -714,7 +717,7 @@ class MainActivity : AppCompatActivity() {
     private var logHistoryChars = 100_000
 
     private fun buildLogHistoryScreen(): View {
-        val root = layoutInflater.inflate(R.layout.screen_log_history, null)
+        val root = layoutInflater.inflate(R.layout.screen_log_history, contentRoot(), false)
         root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.DEVELOPER) }
         val scroll = root.findViewById<ScrollView>(R.id.logHistoryScroll)
         val text = root.findViewById<TextView>(R.id.logHistoryText)
@@ -769,7 +772,7 @@ class MainActivity : AppCompatActivity() {
     // ---------- Knocks screen: assist-level knocks and the action each one runs (res/layout/screen_knocks.xml) ----------
 
     private fun buildKnocksScreen(): View {
-        val root = layoutInflater.inflate(R.layout.screen_knocks, null)
+        val root = layoutInflater.inflate(R.layout.screen_knocks, contentRoot(), false)
         val list = root.findViewById<LinearLayout>(R.id.knockList)
         val knocks = KnockStore.all
         root.findViewById<TextView>(R.id.knocksEmpty).visibility = if (knocks.isEmpty()) View.VISIBLE else View.GONE
@@ -873,7 +876,7 @@ class MainActivity : AppCompatActivity() {
         nickname?.takeIf { it.isNotBlank() } ?: getString(R.string.device_unnamed, address.takeLast(5))
 
     private fun buildDevicesScreen(): View {
-        val root = layoutInflater.inflate(R.layout.screen_devices, null)
+        val root = layoutInflater.inflate(R.layout.screen_devices, contentRoot(), false)
         val list = root.findViewById<LinearLayout>(R.id.deviceList)
         val empty = root.findViewById<TextView>(R.id.devicesEmpty)
         val scanBtn = root.findViewById<Button>(R.id.scanBtn)
@@ -1057,7 +1060,7 @@ class MainActivity : AppCompatActivity() {
     }.timeInMillis
 
     private fun buildHistoryScreen(): View {
-        val root = layoutInflater.inflate(R.layout.screen_history, null)
+        val root = layoutInflater.inflate(R.layout.screen_history, contentRoot(), false)
         val list = root.findViewById<LinearLayout>(R.id.historyList)
         val empty = root.findViewById<TextView>(R.id.historyEmpty)
         val bikeView = root.findViewById<TextView>(R.id.historyBike)
@@ -1140,7 +1143,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun buildHistoryDetailScreen(): View {
-        val root = layoutInflater.inflate(R.layout.screen_history_detail, null)
+        val root = layoutInflater.inflate(R.layout.screen_history_detail, contentRoot(), false)
         val title = root.findViewById<TextView>(R.id.detailTitle)
         val subtitle = root.findViewById<TextView>(R.id.detailSubtitle)
         val distance = root.findViewById<TextView>(R.id.detailDistance)
@@ -1198,7 +1201,7 @@ class MainActivity : AppCompatActivity() {
 
     /** One day: all routes on one map, the day totals, a timeline, the rides, and a speed graph. */
     private fun buildHistoryDayScreen(): View {
-        val root = layoutInflater.inflate(R.layout.screen_history_day, null)
+        val root = layoutInflater.inflate(R.layout.screen_history_day, contentRoot(), false)
         val day = selectedDayStart
         val dateFormat = java.text.DateFormat.getDateInstance(java.text.DateFormat.FULL)
         val timeFormat = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
