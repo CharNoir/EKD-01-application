@@ -2,7 +2,6 @@ package com.char_noir.ekd01
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Color
 import android.graphics.Paint
 import android.location.Location
 import androidx.core.graphics.ColorUtils
@@ -150,7 +149,7 @@ object TrackMap {
         val box = BoundingBox.fromGeoPointsSafe(all)
         // Zoom needs the view's size, so wait for the first layout.
         map.addOnFirstLayoutListener { _, _, _, _, _ ->
-            if (all.size == 1 || box.latitudeSpan < 1e-5 && box.longitudeSpan < 1e-5) {
+            if (all.size == 1 || box.latitudeSpan < 1e-5 && box.longitudeSpanWithDateLine < 1e-5) {
                 map.controller.setZoom(17.0)
                 map.controller.setCenter(all.first())
             } else {
