@@ -335,8 +335,8 @@ class MainActivity : AppCompatActivity() {
             sendNow(Protocol.setAssist(newLevel))
         }
 
-        mainControls = listOf(
-            root.findViewById(R.id.lightIconBtn),
+        mainControls = listOfNotNull(
+            lightIconBtn,
             root.findViewById(R.id.assistMinusBtn),
             root.findViewById(R.id.assistPlusBtn)
         )
@@ -1389,10 +1389,9 @@ class MainActivity : AppCompatActivity() {
             speedBtn.setOnClickListener { GpsTracker.setSpeedColors(this, true); drawRoutes(true) }
             drawRoutes(GpsTracker.speedColors(this))
             if (routes.size > 1) {
-                val legend = rideLegend
                 val timeFormat = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
                 routes.forEachIndexed { i, r ->
-                    legend.addView(TextView(this).apply {
+                    rideLegend.addView(TextView(this).apply {
                         text = getString(R.string.gps_legend_item, timeFormat.format(java.util.Date(r.session.connectedAt)), routeKm(r.points))
                         setTextColor(routeColors[i])
                     })
