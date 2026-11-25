@@ -3,7 +3,6 @@ package com.char_noir.ekd01
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.text.InputFilter
@@ -1467,12 +1466,8 @@ class MainActivity : AppCompatActivity() {
     /** Runs [action] once the Bluetooth permissions are granted (asking for them first if needed). */
     private fun requestBluetoothPermissions(action: () -> Unit) {
         val needed = mutableListOf<String>()
-        if (Build.VERSION.SDK_INT >= 31) {
-            needed += Manifest.permission.BLUETOOTH_SCAN
-            needed += Manifest.permission.BLUETOOTH_CONNECT
-        } else {
-            needed += Manifest.permission.ACCESS_FINE_LOCATION
-        }
+        needed += Manifest.permission.BLUETOOTH_SCAN
+        needed += Manifest.permission.BLUETOOTH_CONNECT
         val missing = needed.filter {
             ActivityCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }

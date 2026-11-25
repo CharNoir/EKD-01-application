@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.char_noir.ekd01"
-        minSdk = 26
+        minSdk = 31
         targetSdk = 34
         versionCode = 1
         versionName = "0.1"

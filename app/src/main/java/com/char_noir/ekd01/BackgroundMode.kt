@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.os.Build
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.ActivityRecognition
 import com.google.android.gms.location.ActivityTransition
@@ -76,13 +75,9 @@ object BackgroundMode {
 
     /** Without these the feature cannot work. */
     private fun requiredPermissions(): List<String> = buildList {
-        if (Build.VERSION.SDK_INT >= 29) add(Manifest.permission.ACTIVITY_RECOGNITION)
-        if (Build.VERSION.SDK_INT >= 31) {
-            add(Manifest.permission.BLUETOOTH_SCAN)
-            add(Manifest.permission.BLUETOOTH_CONNECT)
-        } else {
-            add(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
+        add(Manifest.permission.ACTIVITY_RECOGNITION)
+        add(Manifest.permission.BLUETOOTH_SCAN)
+        add(Manifest.permission.BLUETOOTH_CONNECT)
     }
 
     /**
@@ -102,8 +97,7 @@ object BackgroundMode {
     // ---- Activity transition registration --------------------------------------------------
 
     private fun pendingIntent(ctx: Context): PendingIntent {
-        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
-            (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         return PendingIntent.getBroadcast(ctx, 0, Intent(ctx, ActivityTransitionReceiver::class.java), flags)
     }
 

@@ -6,8 +6,6 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.os.Build
-import android.os.Bundle
 import android.os.Looper
 import androidx.core.content.ContextCompat
 
@@ -62,10 +60,9 @@ object GpsTracker {
     fun hasLocationPermission(ctx: Context): Boolean =
         ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
-    /** "Allow all the time" (Android 10+). Older versions have no such permission and need none. */
+    /** "Allow all the time". */
     fun hasBackgroundPermission(ctx: Context): Boolean =
-        Build.VERSION.SDK_INT < 29 ||
-            ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
 
     /** True when the background service may be declared as a location service (see BikeService). */
     fun canRunInService(ctx: Context): Boolean = hasLocationPermission(ctx) && hasBackgroundPermission(ctx)
@@ -80,11 +77,6 @@ object GpsTracker {
             if (location.hasAccuracy() && location.accuracy > MAX_ACCURACY_M) return
             BikeRecorder.onLocation(location)
         }
-        // Needed on Android 9 and older, where these have no default implementation.
-        @Deprecated("Deprecated in Java")
-        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-        override fun onProviderEnabled(provider: String) {}
-        override fun onProviderDisabled(provider: String) {}
     }
 
     @Synchronized
