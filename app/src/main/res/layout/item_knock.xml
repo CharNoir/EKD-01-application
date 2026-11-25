@@ -2,21 +2,38 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     style="@style/CardContainer">
 
-    <TextView android:id="@+id/knockSequence" style="@style/CardTitle" />
-    <TextView android:id="@+id/knockAction" style="@style/BodyText" />
-    <TextView android:id="@+id/knockSummary" style="@style/HintText" />
-    <CheckBox
-        android:id="@+id/knockEnabled"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/text_primary"
-        android:text="@string/knock_enabled" />
+        android:gravity="center_vertical">
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+            <TextView
+                android:id="@+id/knockSequence"
+                style="@style/BigNumber"
+                android:textSize="26sp"
+                android:textColor="@color/amber"
+                android:letterSpacing="0.08" />
+            <TextView android:id="@+id/knockAction" style="@style/BodyText" android:textStyle="bold" />
+            <TextView android:id="@+id/knockSummary" style="@style/HintText" />
+        </LinearLayout>
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/knockEnabled"
+            style="@style/AppSwitch"
+            android:layout_width="wrap_content"
+            android:contentDescription="@string/knock_enabled" />
+    </LinearLayout>
 
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <Button android:id="@+id/knockEditBtn" style="@style/AmberButton.Row" android:text="@string/knock_edit" />
-        <Button android:id="@+id/knockDeleteBtn" style="@style/AmberButton.Row" android:layout_marginStart="8dp" android:text="@string/knock_delete" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp">
+        <Button android:id="@+id/knockEditBtn" style="@style/OutlineButton.Row" android:text="@string/knock_edit" />
+        <Button android:id="@+id/knockDeleteBtn" style="@style/OutlineButton.Row" android:layout_marginStart="8dp" android:textColor="@color/bad" android:text="@string/knock_delete" />
     </LinearLayout>
 </LinearLayout>

@@ -35,6 +35,13 @@ class LineChartView @JvmOverloads constructor(context: Context, attrs: Attribute
     }
     private val timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT)
 
+    /** Line and dot colour (default amber). */
+    fun setColor(color: Int) {
+        linePaint.color = color
+        dotPaint.color = color
+        invalidate()
+    }
+
     fun setData(x: List<Long>, y: List<Double>) {
         xs = x
         ys = y

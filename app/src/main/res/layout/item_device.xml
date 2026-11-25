@@ -4,13 +4,31 @@
     android:clickable="true"
     android:focusable="true">
 
-    <TextView android:id="@+id/deviceName" style="@style/CardTitle" />
-    <TextView
-        android:id="@+id/deviceActive"
-        style="@style/BodyText"
-        android:textColor="@color/accent_text"
-        android:text="@string/device_active"
-        android:visibility="gone" />
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/deviceName"
+            style="@style/CardTitle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:textSize="17sp"
+            android:paddingBottom="0dp" />
+        <TextView
+            android:id="@+id/deviceActive"
+            style="@style/HintText"
+            android:background="@drawable/btn_outline"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:textColor="@color/amber"
+            android:textStyle="bold"
+            android:text="@string/device_active"
+            android:visibility="gone" />
+    </LinearLayout>
     <TextView android:id="@+id/deviceAddress" style="@style/HintText" />
     <TextView android:id="@+id/deviceInfo" style="@style/BodyText" />
 
@@ -18,8 +36,9 @@
         android:id="@+id/deviceButtons"
         android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <Button android:id="@+id/renameBtn" style="@style/AmberButton.Row" android:text="@string/device_rename" />
-        <Button android:id="@+id/forgetBtn" style="@style/AmberButton.Row" android:layout_marginStart="8dp" android:text="@string/device_forget" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp">
+        <Button android:id="@+id/renameBtn" style="@style/OutlineButton.Row" android:text="@string/device_rename" />
+        <Button android:id="@+id/forgetBtn" style="@style/OutlineButton.Row" android:layout_marginStart="8dp" android:textColor="@color/bad" android:text="@string/device_forget" />
     </LinearLayout>
 </LinearLayout>

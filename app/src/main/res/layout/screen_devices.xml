@@ -10,16 +10,29 @@
         android:layout_height="wrap_content"
         android:padding="12dp">
 
+        <TextView style="@style/PageTitle" android:text="@string/devices_title" />
+        <TextView
+            style="@style/HintText"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="10dp"
+            android:text="@string/devices_hint" />
+        <TextView
+            android:id="@+id/devicesEmpty"
+            style="@style/HintText"
+            android:visibility="gone"
+            android:paddingStart="6dp"
+            android:paddingBottom="8dp"
+            android:text="@string/devices_empty" />
+
+        <LinearLayout
+            android:id="@+id/deviceList"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView style="@style/SectionLabel" android:text="@string/devices_add_title" />
         <LinearLayout style="@style/CardContainer">
-            <Button android:id="@+id/backBtn" style="@style/AmberButton" android:text="@string/back" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-
-            <TextView
-                style="@style/CardTitle"
-                android:text="@string/devices_add_title" />
-
             <Button
                 android:id="@+id/scanBtn"
                 style="@style/AmberButton"
@@ -38,26 +51,6 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
         </LinearLayout>
-
-        <TextView style="@style/CardTitle" android:paddingStart="4dp" android:text="@string/devices_title" />
-        <TextView
-            style="@style/HintText"
-            android:paddingStart="4dp"
-            android:paddingBottom="8dp"
-            android:text="@string/devices_hint" />
-        <TextView
-            android:id="@+id/devicesEmpty"
-            style="@style/HintText"
-            android:visibility="gone"
-            android:paddingStart="4dp"
-            android:paddingBottom="8dp"
-            android:text="@string/devices_empty" />
-
-        <LinearLayout
-            android:id="@+id/deviceList"
-            android:orientation="vertical"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
 
     </LinearLayout>
 </ScrollView>

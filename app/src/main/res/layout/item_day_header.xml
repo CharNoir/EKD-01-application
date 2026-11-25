@@ -1,22 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One card per day: date, day totals and the route button on top, that day's rides below. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:paddingStart="4dp"
-    android:paddingTop="8dp">
+    style="@style/HeroBox"
+    android:layout_marginTop="14dp"
+    android:layout_marginBottom="4dp">
 
-    <TextView
-        android:id="@+id/dayTitle"
-        style="@style/CardTitle"
-        android:layout_width="0dp"
-        android:layout_weight="1" />
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+        <View
+            android:layout_width="4dp"
+            android:layout_height="14dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/btn_amber" />
+        <TextView
+            android:id="@+id/dayTitle"
+            style="@style/TileLabel"
+            android:textColor="@color/amber"
+            android:textStyle="bold"
+            android:textSize="12sp" />
+    </LinearLayout>
+    <TextView android:id="@+id/dayDistance" style="@style/BigNumber" android:layout_marginTop="4dp" />
+    <LinearLayout
+        android:id="@+id/dayTiles"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="-3dp"
+        android:layout_marginEnd="-3dp" />
     <Button
         android:id="@+id/dayRouteBtn"
-        style="@style/AmberButton.Row"
-        android:layout_width="wrap_content"
-        android:layout_weight="0"
+        style="@style/AmberButton"
+        android:layout_width="match_parent"
+        android:layout_marginTop="8dp"
         android:visibility="gone"
-        android:text="@string/history_day_route" />
+        android:text="@string/history_show_day_route" />
+
+    <LinearLayout
+        android:id="@+id/dayRidesList"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:showDividers="middle"
+        android:divider="@drawable/divider_h" />
 </LinearLayout>

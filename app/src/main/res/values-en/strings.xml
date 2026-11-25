@@ -154,7 +154,7 @@
     <string name="gps_record">Record GPS during rides</string>
     <string name="gps_record_hint">Opt-in. While the bike is connected, the phone\'s position is saved in this app\'s local database only. Nothing is uploaded. For recording with the screen off, location access must be \"Allow all the time\".</string>
     <string name="gps_show_map">Show map in ride history</string>
-    <string name="gps_show_map_hint">Off: routes are only recorded, nothing is drawn and the app makes no network requests. On: map tiles are downloaded from OpenStreetMap (it can see which area you look at, not your route) and cached on the phone.</string>
+    <string name="gps_show_map_hint">Off: routes are only recorded, nothing is drawn and the app makes no network requests. On: map tiles are downloaded from the provider of the chosen style and cached on the phone. That provider can see which area you look at, not your route.</string>
     <string name="gps_export_all">Export all GPS data (GPX)</string>
     <string name="gps_delete_all">Delete all GPS data</string>
     <string name="gps_delete_confirm">Delete all recorded GPS points? Rides stay in the history.</string>
@@ -180,4 +180,46 @@
     <string name="log_gps_started">GPS recording started</string>
     <string name="log_gps_off">GPS is switched off on the phone; no route is recorded</string>
     <string name="log_gps_failed">GPS recording failed: %1$s</string>
+
+    <!-- Redesign: settings groups, history tiles, day route -->
+    <string name="settings_title">Settings</string>
+    <string name="group_bike">Bike</string>
+    <string name="group_display">Display &amp; controls</string>
+    <string name="group_app">App</string>
+    <string name="group_recording">Ride recording</string>
+    <string name="group_data">Data</string>
+    <string name="assist_label">Assist</string>
+    <string name="history_show_day_route">Show day route</string>
+    <string name="km_1dp">%1$.1f km</string>
+    <string name="duration_min">%1$d min</string>
+    <string name="duration_h_min">%1$d h %2$02d min</string>
+    <string name="ride_meta_gps">%1$s · GPS route</string>
+    <string name="ride_avg_max">Ø %1$.1f · max %2$.1f</string>
+    <string name="battery_range">%1$s → %2$s</string>
+    <string name="climb_value">+%1$d m</string>
+    <string name="tile_rides">Rides</string>
+    <string name="tile_battery">Battery</string>
+    <string name="tile_climb">Climb ≈</string>
+    <string name="tile_riding_time">Riding time</string>
+    <string name="tile_avg_speed">Avg speed</string>
+    <string name="tile_top_speed">Top speed</string>
+    <string name="tile_battery_used">Battery used</string>
+    <string name="day_total">Day total</string>
+    <string name="day_subtitle">%1$d rides · %2$s – %3$s</string>
+    <string name="day_charged">⚡ Charged between rides</string>
+    <string name="day_timeline">Timeline</string>
+    <string name="day_rides">Rides</string>
+    <string name="day_speed_chart">Speed through the day (km/h)</string>
+    <string name="ride_title_gps">%1$s · GPS</string>
+    <string name="group_recording_data">Recording &amp; data</string>
+    <string name="record_interval_hint_short">Seconds (1–3600)</string>
+    <string name="auto_off_hint_short">Minutes</string>
+    <string name="cd_history">Ride history</string>
+    <string name="knock_sequence_label">Sequence</string>
+    <string name="knock_gap_label">Time between steps</string>
+    <string name="map_style_title">Map style</string>
+    <string name="map_style_standard">Standard</string>
+    <string name="map_style_cycling">Cycling</string>
+    <string name="map_style_dark">Dark</string>
+    <string name="map_style_hint">Standard: OpenStreetMap. Cycling: CyclOSM (OSM France), shows bike lanes and routes. Dark: CARTO Dark Matter.</string>
 </resources>

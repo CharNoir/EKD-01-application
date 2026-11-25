@@ -24,6 +24,7 @@ object GpsTracker {
     private const val PREFS = "ekd01_prefs"
     private const val KEY_RECORD = "gps_record"
     private const val KEY_MAP = "gps_show_map"
+    private const val KEY_STYLE = "gps_map_style"
 
     private const val MIN_INTERVAL_MS = 3_000L
     private const val MIN_DISTANCE_M = 5f
@@ -39,6 +40,12 @@ object GpsTracker {
     fun setEnabled(ctx: Context, value: Boolean) {
         prefs(ctx).edit().putBoolean(KEY_RECORD, value).apply()
         BikeRecorder.refreshGps()
+    }
+
+    /** Map look: 0 = standard OpenStreetMap, 1 = cycling (CyclOSM, default), 2 = dark (Carto Dark Matter). */
+    fun mapStyle(ctx: Context): Int = prefs(ctx).getInt(KEY_STYLE, 1).coerceIn(0, 2)
+    fun setMapStyle(ctx: Context, value: Int) {
+        prefs(ctx).edit().putInt(KEY_STYLE, value.coerceIn(0, 2)).apply()
     }
 
     fun setShowMap(ctx: Context, value: Boolean) {

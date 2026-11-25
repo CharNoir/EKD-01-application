@@ -7,36 +7,39 @@
     android:paddingEnd="20dp"
     android:paddingTop="8dp">
 
+    <TextView style="@style/SectionLabel" android:paddingStart="0dp" android:text="@string/knock_sequence_label" />
     <EditText
         android:id="@+id/knockSequenceInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        style="@style/StyledEditText"
         android:hint="@string/knock_sequence_hint"
         android:importantForAutofill="no"
         android:inputType="number"
-        android:minHeight="48dp"
-        android:singleLine="true" />
+        android:minHeight="48dp" />
+
+    <TextView style="@style/SectionLabel" android:paddingStart="0dp" android:text="@string/knock_gap_label" />
     <EditText
         android:id="@+id/knockGapInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        style="@style/StyledEditText"
         android:hint="@string/knock_gap_hint"
+        android:importantForAutofill="no"
         android:inputType="number"
-        android:singleLine="true" />
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:paddingTop="12dp"
-        android:text="@string/knock_action_label" />
+        android:minHeight="48dp" />
+
+    <TextView style="@style/SectionLabel" android:paddingStart="0dp" android:text="@string/knock_action_label" />
     <Spinner
         android:id="@+id/knockActionSpinner"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:background="@drawable/input_bg"
+        android:paddingStart="6dp" />
+
     <EditText
         android:id="@+id/knockParamInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        style="@style/StyledEditText"
+        android:layout_marginTop="10dp"
         android:visibility="gone"
+        android:importantForAutofill="no"
         android:inputType="text"
-        android:singleLine="true" />
+        android:minHeight="48dp" />
 </LinearLayout>

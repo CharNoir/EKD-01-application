@@ -10,15 +10,30 @@
         android:layout_height="wrap_content"
         android:padding="12dp">
 
-        <LinearLayout style="@style/CardContainer">
-            <Button android:id="@+id/backBtn" style="@style/AmberButton" android:text="@string/back" />
-        </LinearLayout>
+        <TextView android:id="@+id/detailTitle" style="@style/PageTitle" />
+        <TextView
+            android:id="@+id/detailSubtitle"
+            style="@style/HintText"
+            android:paddingStart="6dp"
+            android:paddingBottom="10dp" />
 
-        <LinearLayout
-            android:id="@+id/detailHeader"
-            android:orientation="vertical"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+        <LinearLayout style="@style/HeroBox">
+            <TextView android:id="@+id/detailDistance" style="@style/BigNumber" />
+            <LinearLayout
+                android:id="@+id/detailTiles"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginStart="-3dp"
+                android:layout_marginEnd="-3dp" />
+            <TextView
+                android:id="@+id/detailCharged"
+                style="@style/HintText"
+                android:textColor="@color/amber"
+                android:layout_marginTop="6dp"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/gpsContainer"
@@ -26,7 +41,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <TextView style="@style/CardTitle" android:paddingStart="4dp" android:text="@string/charts_title" />
+        <TextView style="@style/SectionLabel" android:text="@string/charts_title" />
         <LinearLayout
             android:id="@+id/chartList"
             android:orientation="vertical"

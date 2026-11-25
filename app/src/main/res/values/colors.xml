@@ -13,4 +13,10 @@
     <color name="warn">#FFFF9800</color>
     <color name="neutral">#FFAFAFB4</color>
     <color name="bad">#FFE53935</color>
+    <color name="surface_deep">#FF1D1D20</color>
+    <color name="track">#FF3A3A3F</color>
+    <color name="amber_soft">#26F57C00</color>
+    <color name="hero_start">#FF2B2B2F</color>
+    <color name="hero_end">#FF202023</color>
+    <color name="ripple">#33FFFFFF</color>
 </resources>

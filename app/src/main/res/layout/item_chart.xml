@@ -2,10 +2,22 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     style="@style/CardContainer">
 
-    <TextView android:id="@+id/chartTitle" style="@style/CardTitle" android:paddingBottom="0dp" />
-    <TextView android:id="@+id/chartRange" style="@style/HintText" android:paddingBottom="6dp" />
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/chartTitle"
+            style="@style/CardTitle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:paddingBottom="0dp" />
+        <TextView android:id="@+id/chartRange" style="@style/HintText" />
+    </LinearLayout>
     <com.char_noir.ekd01.LineChartView
         android:id="@+id/chartView"
         android:layout_width="match_parent"
-        android:layout_height="170dp" />
+        android:layout_height="150dp"
+        android:layout_marginTop="6dp" />
 </LinearLayout>

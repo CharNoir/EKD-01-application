@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:background="?attr/selectableItemBackground">
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/rideTitle"
+            style="@style/BodyText"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+        <TextView android:id="@+id/rideDist" style="@style/BodyText" android:textStyle="bold" android:textSize="16sp" />
+    </LinearLayout>
+    <TextView android:id="@+id/rideStats" style="@style/HintText" />
+    <ProgressBar
+        android:id="@+id/rideBatteryBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_marginTop="8dp"
+        android:max="100"
+        android:progressDrawable="@drawable/progress_battery" />
+    <TextView android:id="@+id/rideCharged" style="@style/HintText" android:textColor="@color/amber" android:visibility="gone" />
+</LinearLayout>

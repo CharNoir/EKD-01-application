@@ -26,6 +26,7 @@ private const val COLOR_OK: Int = 0xFF4CAF50.toInt()
 private const val COLOR_WARN: Int = 0xFFFF9800.toInt()
 private const val COLOR_NEUTRAL: Int = 0xFFAFAFB4.toInt()
 private const val COLOR_BAD: Int = 0xFFE53935.toInt()
+private const val COLOR_ON_AMBER: Int = 0xFF1C1C1E.toInt()
 
 // Byte offsets inside the T1/T9 telemetry payloads that Protocol.kt already decodes -
 // used to label the raw-byte dump in the Developer screen so the still-unidentified
@@ -74,7 +75,7 @@ class MainActivity : AppCompatActivity() {
     // History screens: which ride is open, and a thread for database reads.
     private var selectedSessionId: Long = -1
     private var selectedDayStart: Long = 0
-    private var gpsCheckbox: CheckBox? = null
+    private var gpsCheckbox: CompoundButton? = null
     /** The OSM map of the screen being shown (only one at a time); paused/resumed with the activity. */
     private var mapView: MapView? = null
     private val dbExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
@@ -119,6 +120,7 @@ class MainActivity : AppCompatActivity() {
     private var mainTripAvgLabel: TextView? = null
     private var speedValueLabel: TextView? = null
     private var mainAssistLevelLabel: TextView? = null
+    private var mainAssistBars: LinearLayout? = null
 
     // Raw-byte dump for the Developer screen (see "Raw telemetry bytes" card) - lets you
     // watch every byte of the last T1/T9 packet live, to hunt for an undecoded speed field.
@@ -129,7 +131,7 @@ class MainActivity : AppCompatActivity() {
     private var rawT9View: TextView? = null
 
     // Settings screen: "Background execution enabled" checkbox.
-    private var backgroundCheckbox: CheckBox? = null
+    private var backgroundCheckbox: CompoundButton? = null
 
     private val linkListener = object : BikeLink.Listener {
         override fun onStateChanged(state: BikeLink.State) {
@@ -142,7 +144,7 @@ class MainActivity : AppCompatActivity() {
             updateLightButtonVisual()
             updateBatteryViews()
             updateMainAssistLabel()
-            speedValueLabel?.text = "%.1f".format(t.speedKmh)
+            speedValueLabel?.text = "%.0f".format(t.speedKmh)
             odoLabel?.text = getString(R.string.odo_value, t.odometerKm)
             mainTripDistLabel?.text = getString(R.string.distance_km, t.tripKm)
             updateRawViews()
@@ -241,7 +243,7 @@ class MainActivity : AppCompatActivity() {
         when (currentScreen) {
             Screen.MAIN -> super.onBackPressed()
             Screen.HISTORY_DETAIL, Screen.HISTORY_DAY -> navigateTo(Screen.HISTORY)
-            Screen.HISTORY, Screen.DEVICES, Screen.KNOCKS -> navigateTo(Screen.SETTINGS)
+            Screen.DEVICES, Screen.KNOCKS -> navigateTo(Screen.SETTINGS)
             Screen.LOG_HISTORY -> navigateTo(Screen.DEVELOPER)
             else -> navigateTo(Screen.MAIN)
         }
@@ -295,12 +297,14 @@ class MainActivity : AppCompatActivity() {
         }
         updateLightButtonVisual()
 
-        root.findViewById<TextView>(R.id.settingsIconBtn).setOnClickListener { navigateTo(Screen.SETTINGS) }
+        root.findViewById<View>(R.id.settingsIconBtn).setOnClickListener { navigateTo(Screen.SETTINGS) }
+        root.findViewById<View>(R.id.historyIconBtn).setOnClickListener { navigateTo(Screen.HISTORY) }
 
         // Assist level +/- stepper, between the settings and light icons. Optimistically
         // updates assistLevelOverride on tap (clamped 0-5, matching the assist0..5Btn
         // presets in the Developer menu); the next T1 telemetry packet confirms it.
         mainAssistLevelLabel = root.findViewById(R.id.assistLevelLabel)
+        mainAssistBars = root.findViewById(R.id.assistBars)
         updateMainAssistLabel()
         root.findViewById<TextView>(R.id.assistMinusBtn).setOnClickListener {
             val cur = assistLevelOverride ?: lastT1?.assistLevel ?: 0
@@ -318,7 +322,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         speedValueLabel = root.findViewById(R.id.speedValueLabel)
-        speedValueLabel?.text = lastT1?.let { "%.1f".format(it.speedKmh) } ?: dash
+        speedValueLabel?.text = lastT1?.let { "%.0f".format(it.speedKmh) } ?: dash
 
         odoLabel = root.findViewById(R.id.odoLabel)
         mainTripDistLabel = root.findViewById(R.id.tripDistLabel)
@@ -337,12 +341,19 @@ class MainActivity : AppCompatActivity() {
     private fun updateMainAssistLabel() {
         val level = assistLevelOverride ?: lastT1?.assistLevel
         mainAssistLevelLabel?.text = level?.toString() ?: dash
+        val bars = mainAssistBars ?: return
+        for (i in 0 until bars.childCount) {
+            bars.getChildAt(i).backgroundTintList =
+                if (level != null && i < level) android.content.res.ColorStateList.valueOf(COLOR_AMBER) else null
+        }
     }
 
     private fun updateLightButtonVisual() {
         val icon = lightIconBtn ?: return
         val on = lightOn == true
-        icon.imageTintList = android.content.res.ColorStateList.valueOf(if (on) COLOR_AMBER else COLOR_NEUTRAL)
+        // On: dark icon on an amber disc. Off: grey icon on the normal dark disc.
+        icon.imageTintList = android.content.res.ColorStateList.valueOf(if (on) COLOR_ON_AMBER else COLOR_NEUTRAL)
+        icon.backgroundTintList = if (on) android.content.res.ColorStateList.valueOf(COLOR_AMBER) else null
     }
 
     /** Connection-status color (gray / amber / green), shown only via connectionIcon's tint. */
@@ -387,7 +398,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildSettingsScreen(): View {
         val root = layoutInflater.inflate(R.layout.screen_settings, null)
-        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.MAIN) }
 
         val btUnlockLabel = root.findViewById<TextView>(R.id.btUnlockLabel)
         val btUnlockSlider = root.findViewById<SeekBar>(R.id.btUnlockSlider)
@@ -419,15 +429,29 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        root.findViewById<Button>(R.id.unitsKmBtn).setOnClickListener { sendNow(Protocol.setUnitsMiles(false)) }
-        root.findViewById<Button>(R.id.unitsMiBtn).setOnClickListener { sendNow(Protocol.setUnitsMiles(true)) }
+        run {
+            // The bike never reports its unit, so the highlight shows the last choice made from this app.
+            val unitPrefs = getSharedPreferences("ui", MODE_PRIVATE)
+            val kmBtn = root.findViewById<Button>(R.id.unitsKmBtn)
+            val miBtn = root.findViewById<Button>(R.id.unitsMiBtn)
+            fun paint(miles: Boolean) {
+                for ((btn, on) in listOf(kmBtn to !miles, miBtn to miles)) {
+                    btn.setBackgroundResource(if (on) R.drawable.seg_on else android.R.color.transparent)
+                    btn.setTextColor(getColor(if (on) R.color.on_amber else R.color.text_hint))
+                    btn.typeface = if (on) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+                }
+            }
+            paint(unitPrefs.getBoolean("units_miles", false))
+            kmBtn.setOnClickListener { unitPrefs.edit().putBoolean("units_miles", false).apply(); paint(false); sendNow(Protocol.setUnitsMiles(false)) }
+            miBtn.setOnClickListener { unitPrefs.edit().putBoolean("units_miles", true).apply(); paint(true); sendNow(Protocol.setUnitsMiles(true)) }
+        }
         val autoOffInput = root.findViewById<EditText>(R.id.autoOffInput)
         root.findViewById<Button>(R.id.setAutoOffBtn).setOnClickListener {
             val v = autoOffInput.text.toString().toIntOrNull()
             if (v == null) log(getString(R.string.enter_timeout_minutes)) else sendNow(Protocol.setAutoOffMinutes(v))
         }
 
-        root.findViewById<CheckBox>(R.id.showBatteryPercentCheckbox).apply {
+        root.findViewById<CompoundButton>(R.id.showBatteryPercentCheckbox).apply {
             isChecked = showBatteryPercent
             setOnCheckedChangeListener { _, checked ->
                 showBatteryPercent = checked
@@ -435,7 +459,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        root.findViewById<CheckBox>(R.id.backgroundExecutionCheckbox).apply {
+        root.findViewById<CompoundButton>(R.id.backgroundExecutionCheckbox).apply {
             backgroundCheckbox = this
             isChecked = BackgroundMode.isEnabled(this@MainActivity)
             setOnCheckedChangeListener { _, checked ->
@@ -476,7 +500,7 @@ class MainActivity : AppCompatActivity() {
 
         root.findViewById<Button>(R.id.notificationSettingsBtn).setOnClickListener { openNotificationSettings() }
 
-        root.findViewById<CheckBox>(R.id.gpsRecordCheckbox).apply {
+        root.findViewById<CompoundButton>(R.id.gpsRecordCheckbox).apply {
             gpsCheckbox = this
             isChecked = GpsTracker.isEnabled(this@MainActivity)
             setOnCheckedChangeListener { _, checked ->
@@ -487,9 +511,24 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        root.findViewById<CheckBox>(R.id.gpsShowMapCheckbox).apply {
+        root.findViewById<CompoundButton>(R.id.gpsShowMapCheckbox).apply {
             isChecked = GpsTracker.showMap(this@MainActivity)
             setOnCheckedChangeListener { _, checked -> GpsTracker.setShowMap(this@MainActivity, checked) }
+        }
+        run {
+            val styleBtns = listOf(R.id.mapStyleStdBtn, R.id.mapStyleCycleBtn, R.id.mapStyleDarkBtn).map { root.findViewById<Button>(it) }
+            fun paintStyle(selected: Int) {
+                styleBtns.forEachIndexed { i, btn ->
+                    val on = i == selected
+                    btn.setBackgroundResource(if (on) R.drawable.seg_on else android.R.color.transparent)
+                    btn.setTextColor(getColor(if (on) R.color.on_amber else R.color.text_hint))
+                    btn.typeface = if (on) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+                }
+            }
+            paintStyle(GpsTracker.mapStyle(this))
+            styleBtns.forEachIndexed { i, btn ->
+                btn.setOnClickListener { GpsTracker.setMapStyle(this, i); paintStyle(i) }
+            }
         }
         root.findViewById<Button>(R.id.gpsExportAllBtn).setOnClickListener {
             dbExecutor.execute {
@@ -498,7 +537,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         root.findViewById<Button>(R.id.gpsDeleteBtn).setOnClickListener {
-            AlertDialog.Builder(this)
+            AlertDialog.Builder(this, R.style.AppDialog)
                 .setMessage(R.string.gps_delete_confirm)
                 .setPositiveButton(R.string.gps_delete_all) { _, _ ->
                     dbExecutor.execute {
@@ -510,7 +549,6 @@ class MainActivity : AppCompatActivity() {
                 .show()
         }
 
-        root.findViewById<Button>(R.id.historyBtn).setOnClickListener { navigateTo(Screen.HISTORY) }
         root.findViewById<Button>(R.id.developerNavBtn).setOnClickListener { navigateTo(Screen.DEVELOPER) }
 
         return root
@@ -519,7 +557,7 @@ class MainActivity : AppCompatActivity() {
     /** After location is allowed: offers "Allow all the time", which recording with the screen off needs. */
     private fun askBackgroundLocation() {
         if (GpsTracker.hasBackgroundPermission(this)) { refreshServiceType(); return }
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.AppDialog)
             .setTitle(R.string.gps_background_title)
             .setMessage(R.string.gps_background_msg)
             .setPositiveButton(R.string.gps_continue) { _, _ -> gpsBackgroundLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION) }
@@ -712,7 +750,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
         root.findViewById<Button>(R.id.logHistoryClearBtn).setOnClickListener {
-            AlertDialog.Builder(this)
+            AlertDialog.Builder(this, R.style.AppDialog)
                 .setTitle(R.string.log_history_clear_title)
                 .setPositiveButton(R.string.log_history_clear) { _, _ ->
                     dbExecutor.execute { LogStore.clear(); runOnUiThread { load() } }
@@ -728,13 +766,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildKnocksScreen(): View {
         val root = layoutInflater.inflate(R.layout.screen_knocks, null)
-        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.SETTINGS) }
         val list = root.findViewById<LinearLayout>(R.id.knockList)
         val knocks = KnockStore.all
         root.findViewById<TextView>(R.id.knocksEmpty).visibility = if (knocks.isEmpty()) View.VISIBLE else View.GONE
         for (k in knocks) list.addView(buildKnockItem(k, list))
         root.findViewById<Button>(R.id.newKnockBtn).setOnClickListener { showKnockDialog(null) }
-        root.findViewById<CheckBox>(R.id.knocksRejectAmbiguous).apply {
+        root.findViewById<CompoundButton>(R.id.knocksRejectAmbiguous).apply {
             isChecked = KnockStore.rejectAmbiguous
             setOnCheckedChangeListener { _, checked -> KnockStore.setRejectAmbiguous(this@MainActivity, checked) }
         }
@@ -748,13 +785,13 @@ class MainActivity : AppCompatActivity() {
         item.findViewById<TextView>(R.id.knockAction).text =
             (action?.let { getString(it.nameRes) } ?: k.actionId) + (k.parameter?.let { " · $it" } ?: "")
         item.findViewById<TextView>(R.id.knockSummary).text = getString(R.string.knock_gap_summary, k.gapMs)
-        item.findViewById<CheckBox>(R.id.knockEnabled).apply {
+        item.findViewById<CompoundButton>(R.id.knockEnabled).apply {
             isChecked = k.enabled
             setOnCheckedChangeListener { _, checked -> KnockStore.setEnabled(this@MainActivity, k.id, checked) }
         }
         item.findViewById<Button>(R.id.knockEditBtn).setOnClickListener { showKnockDialog(k) }
         item.findViewById<Button>(R.id.knockDeleteBtn).setOnClickListener {
-            AlertDialog.Builder(this)
+            AlertDialog.Builder(this, R.style.AppDialog)
                 .setTitle(R.string.knock_delete_title)
                 .setMessage("${k.sequenceText}: " + (action?.let { getString(it.nameRes) } ?: k.actionId))
                 .setPositiveButton(R.string.knock_delete) { _, _ ->
@@ -797,7 +834,7 @@ class MainActivity : AppCompatActivity() {
         }
         updateParameterField()
 
-        val dialog = AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this, R.style.AppDialog)
             .setTitle(R.string.knock_edit_title)
             .setView(view)
             .setPositiveButton(R.string.save, null) // set below, so errors keep the dialog open
@@ -833,7 +870,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildDevicesScreen(): View {
         val root = layoutInflater.inflate(R.layout.screen_devices, null)
-        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.SETTINGS) }
         val list = root.findViewById<LinearLayout>(R.id.deviceList)
         val empty = root.findViewById<TextView>(R.id.devicesEmpty)
         val scanBtn = root.findViewById<Button>(R.id.scanBtn)
@@ -947,7 +983,7 @@ class MainActivity : AppCompatActivity() {
         }
         val pad = (20 * resources.displayMetrics.density).toInt()
         val box = FrameLayout(this).apply { setPadding(pad, pad / 2, pad, 0); addView(input) }
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.AppDialog)
             .setTitle(R.string.device_rename_title)
             .setView(box)
             .setPositiveButton(R.string.save) { _, _ ->
@@ -962,7 +998,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showForgetDialog(d: DeviceRow) {
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.AppDialog)
             .setTitle(R.string.device_forget_title)
             .setMessage(getString(R.string.device_forget_message, bikeLabel(d.nickname, d.address)))
             .setPositiveButton(R.string.device_forget) { _, _ ->
@@ -975,11 +1011,49 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    // ---------- History screens: recorded rides (res/layout/screen_history*.xml, item_session.xml) ----------
+    // ---------- History screens: rides, ride detail, day route (res/layout/screen_history*.xml) ----------
+
+    private data class Tile(val label: String, val value: String, val amber: Boolean = false)
+
+    private fun dpPx(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+
+    /** Fills [container] (vertical) with rows of [perRow] stat tiles. */
+    private fun fillTiles(container: LinearLayout, tiles: List<Tile>, perRow: Int) {
+        container.removeAllViews()
+        for (chunk in tiles.chunked(perRow)) {
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            for (t in chunk) {
+                val v = layoutInflater.inflate(R.layout.item_stat_tile, row, false)
+                v.findViewById<TextView>(R.id.tileLabel).text = t.label
+                v.findViewById<TextView>(R.id.tileValue).apply {
+                    text = t.value
+                    if (t.amber) setTextColor(COLOR_AMBER)
+                }
+                row.addView(v)
+            }
+            repeat(perRow - chunk.size) {
+                row.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f).apply { setMargins(dpPx(3), 0, dpPx(3), 0) })
+            }
+            container.addView(row)
+        }
+    }
+
+    private fun kmText(km: Double?): String = km?.let { getString(R.string.km_1dp, it) } ?: dash
+    private fun speedText(v: Double?): String = v?.let { "%.1f".format(it) } ?: dash
+
+    private fun durationText(totalSeconds: Int): String {
+        val minutes = (totalSeconds + 30) / 60
+        return if (minutes >= 60) getString(R.string.duration_h_min, minutes / 60, minutes % 60) else getString(R.string.duration_min, minutes)
+    }
+
+    private fun startOfDay(ms: Long): Long = java.util.Calendar.getInstance().apply {
+        timeInMillis = ms
+        set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+        set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+    }.timeInMillis
 
     private fun buildHistoryScreen(): View {
         val root = layoutInflater.inflate(R.layout.screen_history, null)
-        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.SETTINGS) }
         val list = root.findViewById<LinearLayout>(R.id.historyList)
         val empty = root.findViewById<TextView>(R.id.historyEmpty)
         val bikeView = root.findViewById<TextView>(R.id.historyBike)
@@ -1003,35 +1077,69 @@ class MainActivity : AppCompatActivity() {
                     bikeView.visibility = View.VISIBLE
                 }
                 empty.visibility = if (sessions.isEmpty()) View.VISIBLE else View.GONE
-                val dayFormat = java.text.DateFormat.getDateInstance(java.text.DateFormat.FULL)
-                var currentDay = -1L
-                for (s in sessions) {
-                    val day = startOfDay(s.connectedAt)
-                    if (day != currentDay) {
-                        currentDay = day
-                        val header = layoutInflater.inflate(R.layout.item_day_header, list, false)
-                        header.findViewById<TextView>(R.id.dayTitle).text = dayFormat.format(java.util.Date(day))
-                        if (sessions.any { startOfDay(it.connectedAt) == day && it.id in withTrack }) {
-                            header.findViewById<Button>(R.id.dayRouteBtn).apply {
-                                visibility = View.VISIBLE
-                                setOnClickListener { selectedDayStart = day; navigateTo(Screen.HISTORY_DAY) }
-                            }
-                        }
-                        list.addView(header)
-                    }
-                    val item = buildSessionItem(s, list)
-                    item.setOnClickListener { selectedSessionId = s.id; navigateTo(Screen.HISTORY_DETAIL) }
-                    list.addView(item)
+                // One card per day: the day summary on top, that day's rides inside it.
+                for ((day, ofDay) in sessions.groupBy { startOfDay(it.connectedAt) }) {
+                    list.addView(buildDayCard(list, day, ofDay, withTrack))
                 }
             }
         }
         return root
     }
 
+    /** One day as a single card: summary and route button on top, the day's rides below. */
+    private fun buildDayCard(parent: android.view.ViewGroup, day: Long, rides: List<SessionRow>, withTrack: Set<Long>): View {
+        val v = layoutInflater.inflate(R.layout.item_day_header, parent, false)
+        v.findViewById<TextView>(R.id.dayTitle).text =
+            java.text.DateFormat.getDateInstance(java.text.DateFormat.FULL).format(java.util.Date(day)).uppercase()
+        v.findViewById<TextView>(R.id.dayDistance).text = kmText(RideStats.totalKm(rides))
+        fillTiles(
+            v.findViewById(R.id.dayTiles),
+            listOf(
+                Tile(getString(R.string.tile_rides), rides.size.toString(), amber = true),
+                Tile(getString(R.string.stat_time), durationText(RideStats.totalSeconds(rides)))
+            ),
+            2
+        )
+        if (rides.any { it.id in withTrack }) {
+            v.findViewById<Button>(R.id.dayRouteBtn).apply {
+                visibility = View.VISIBLE
+                setOnClickListener { selectedDayStart = day; navigateTo(Screen.HISTORY_DAY) }
+            }
+        }
+        val ridesList = v.findViewById<LinearLayout>(R.id.dayRidesList)
+        val timeFormat = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
+        for (s in rides) {
+            val row = layoutInflater.inflate(R.layout.item_ride_compact, ridesList, false)
+            val duration = RideStats.durationS(s)?.let { durationText(it) } ?: getString(R.string.history_ongoing)
+            val title = timeFormat.format(java.util.Date(s.connectedAt)) + " · " + duration
+            row.findViewById<TextView>(R.id.rideTitle).text = if (s.id in withTrack) getString(R.string.ride_title_gps, title) else title
+            row.findViewById<TextView>(R.id.rideDist).text = kmText(RideStats.distanceKm(s))
+            val parts = mutableListOf<String>()
+            if (s.avgKmh != null && s.maxKmh != null) parts += getString(R.string.ride_avg_max, s.avgKmh, s.maxKmh)
+            parts += getString(R.string.battery_range, percentText(s.batteryStart), percentText(s.batteryEnd))
+            row.findViewById<TextView>(R.id.rideStats).text = parts.joinToString(" · ")
+            val level = s.batteryEnd ?: s.batteryStart
+            val bar = row.findViewById<ProgressBar>(R.id.rideBatteryBar)
+            if (level != null) bar.progress = level else bar.visibility = View.GONE
+            if (s.chargeDetected) {
+                row.findViewById<TextView>(R.id.rideCharged).apply {
+                    text = getString(R.string.history_charged, percentText(s.prevBatteryEnd), percentText(s.batteryStart))
+                    visibility = View.VISIBLE
+                }
+            }
+            row.setOnClickListener { selectedSessionId = s.id; navigateTo(Screen.HISTORY_DETAIL) }
+            ridesList.addView(row)
+        }
+        return v
+    }
+
     private fun buildHistoryDetailScreen(): View {
         val root = layoutInflater.inflate(R.layout.screen_history_detail, null)
-        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.HISTORY) }
-        val header = root.findViewById<LinearLayout>(R.id.detailHeader)
+        val title = root.findViewById<TextView>(R.id.detailTitle)
+        val subtitle = root.findViewById<TextView>(R.id.detailSubtitle)
+        val distance = root.findViewById<TextView>(R.id.detailDistance)
+        val tiles = root.findViewById<LinearLayout>(R.id.detailTiles)
+        val charged = root.findViewById<TextView>(R.id.detailCharged)
         val samplesView = root.findViewById<TextView>(R.id.detailSamples)
         val chartList = root.findViewById<LinearLayout>(R.id.chartList)
         val gpsContainer = root.findViewById<LinearLayout>(R.id.gpsContainer)
@@ -1040,20 +1148,38 @@ class MainActivity : AppCompatActivity() {
             var session: SessionRow? = null
             var samples: List<SampleRow> = emptyList()
             var track: List<TrackPoint> = emptyList()
+            var nickname: String? = null
             try {
                 val db = RideDb.get(this)
                 session = db.loadSession(sessionId)
                 samples = db.loadSamples(sessionId)
                 track = db.loadTrack(sessionId)
+                session?.deviceAddress?.let { nickname = db.deviceNickname(it) }
             } catch (e: Exception) {
                 BikeLink.logDbError(e.message ?: e.javaClass.simpleName)
             }
             runOnUiThread {
                 if (isDestroyed || currentScreen != Screen.HISTORY_DETAIL) return@runOnUiThread
-                session?.let { header.addView(buildSessionItem(it, header)) }
                 session?.let { ride ->
+                    title.text = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
+                        .format(java.util.Date(ride.connectedAt))
+                    val duration = RideStats.durationS(ride)?.let { durationText(it) } ?: getString(R.string.history_ongoing)
+                    subtitle.text = ride.deviceAddress?.let { duration + " · " + bikeLabel(nickname, it) } ?: duration
+                    distance.text = kmText(RideStats.distanceKm(ride))
+                    val climb = RideStats.climbM(track)
+                    val list = mutableListOf(
+                        Tile(getString(R.string.stat_avg), speedText(ride.avgKmh)),
+                        Tile(getString(R.string.stat_max), speedText(ride.maxKmh), amber = true),
+                        Tile(getString(R.string.tile_battery), getString(R.string.battery_range, percentText(ride.batteryStart), percentText(ride.batteryEnd)))
+                    )
+                    if (climb != null) list += Tile(getString(R.string.tile_climb), getString(R.string.climb_value, climb.toInt()))
+                    fillTiles(tiles, list, 2)
+                    if (ride.chargeDetected) {
+                        charged.text = getString(R.string.history_charged, percentText(ride.prevBatteryEnd), percentText(ride.batteryStart))
+                        charged.visibility = View.VISIBLE
+                    }
                     val stamp = java.text.SimpleDateFormat("yyyyMMdd_HHmm", java.util.Locale.US).format(java.util.Date(ride.connectedAt))
-                    fillGpsSection(gpsContainer, listOf(RideTrack(ride, track)), "ekd01_ride_$stamp.gpx", R.string.gps_export_ride)
+                    fillGpsSection(gpsContainer, listOf(RideTrack(ride, track)), "ekd01_ride_$stamp.gpx", R.string.gps_export_ride, listOf(TrackMap.COLORS[0]))
                 }
                 samplesView.text = if (samples.isEmpty()) getString(R.string.history_no_samples)
                 else samples.joinToString("\n") { formatSample(it) }
@@ -1063,31 +1189,103 @@ class MainActivity : AppCompatActivity() {
         return root
     }
 
-    private fun startOfDay(ms: Long): Long = java.util.Calendar.getInstance().apply {
-        timeInMillis = ms
-        set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
-        set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
-    }.timeInMillis
-
-    /** All routes of one day on one map. */
+    /** One day: all routes on one map, the day totals, a timeline, the rides, and a speed graph. */
     private fun buildHistoryDayScreen(): View {
         val root = layoutInflater.inflate(R.layout.screen_history_day, null)
-        root.findViewById<Button>(R.id.backBtn).setOnClickListener { navigateTo(Screen.HISTORY) }
         val day = selectedDayStart
-        root.findViewById<TextView>(R.id.dayTitle).text =
-            java.text.DateFormat.getDateInstance(java.text.DateFormat.FULL).format(java.util.Date(day))
-        val container = root.findViewById<LinearLayout>(R.id.dayGpsContainer)
+        val dateFormat = java.text.DateFormat.getDateInstance(java.text.DateFormat.FULL)
+        val timeFormat = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
+        root.findViewById<TextView>(R.id.dayTitle).text = dateFormat.format(java.util.Date(day))
+        val subtitle = root.findViewById<TextView>(R.id.daySubtitle)
+        val gpsContainer = root.findViewById<LinearLayout>(R.id.dayGpsContainer)
         val empty = root.findViewById<TextView>(R.id.dayEmpty)
+        val distance = root.findViewById<TextView>(R.id.dayDistance)
+        val totalTiles = root.findViewById<LinearLayout>(R.id.dayTotalTiles)
+        val chargedView = root.findViewById<TextView>(R.id.dayCharged)
+        val timeline = root.findViewById<TimelineView>(R.id.dayTimeline)
+        val ridesList = root.findViewById<LinearLayout>(R.id.dayRides)
+        val chartContainer = root.findViewById<LinearLayout>(R.id.dayChartContainer)
         dbExecutor.execute {
             val end = java.util.Calendar.getInstance().apply { timeInMillis = day; add(java.util.Calendar.DAY_OF_YEAR, 1) }.timeInMillis
-            val rides = try { RideDb.get(this).loadTracks(day, end) } catch (e: Exception) {
-                BikeLink.logDbError(e.message ?: e.javaClass.simpleName); emptyList()
+            var sessions: List<SessionRow> = emptyList()
+            var tracks: List<RideTrack> = emptyList()
+            var samples: Map<Long, List<SampleRow>> = emptyMap()
+            try {
+                val db = RideDb.get(this)
+                sessions = db.loadSessionsBetween(day, end)
+                tracks = db.loadTracks(day, end)
+                samples = sessions.associate { it.id to db.loadSamples(it.id) }
+            } catch (e: Exception) {
+                BikeLink.logDbError(e.message ?: e.javaClass.simpleName)
             }
             runOnUiThread {
                 if (isDestroyed || currentScreen != Screen.HISTORY_DAY) return@runOnUiThread
-                val stamp = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date(day))
-                if (rides.none { it.points.isNotEmpty() }) empty.visibility = View.VISIBLE
-                else fillGpsSection(container, rides, "ekd01_day_$stamp.gpx", R.string.gps_export_day)
+                if (sessions.isEmpty()) { empty.visibility = View.VISIBLE; return@runOnUiThread }
+                val colorOf = sessions.mapIndexed { i, s -> s.id to TrackMap.COLORS[i % TrackMap.COLORS.size] }.toMap()
+                val last = sessions.last()
+                subtitle.text = getString(
+                    R.string.day_subtitle, sessions.size,
+                    timeFormat.format(java.util.Date(sessions.first().connectedAt)),
+                    timeFormat.format(java.util.Date(last.disconnectedAt ?: System.currentTimeMillis()))
+                )
+
+                val routes = tracks.filter { it.points.isNotEmpty() }
+                if (routes.isEmpty()) empty.visibility = View.VISIBLE
+                else {
+                    val stamp = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date(day))
+                    fillGpsSection(gpsContainer, routes, "ekd01_day_$stamp.gpx", R.string.gps_export_day, routes.map { colorOf[it.session.id] ?: TrackMap.COLORS[0] })
+                }
+
+                distance.text = kmText(RideStats.totalKm(sessions))
+                val climb = routes.mapNotNull { RideStats.climbM(it.points) }.takeIf { it.isNotEmpty() }?.sum()
+                val tiles = mutableListOf(
+                    Tile(getString(R.string.tile_riding_time), durationText(RideStats.totalSeconds(sessions))),
+                    Tile(getString(R.string.tile_avg_speed), speedText(RideStats.avgSpeedKmh(sessions))),
+                    Tile(getString(R.string.tile_top_speed), speedText(RideStats.topSpeedKmh(sessions)), amber = true),
+                    Tile(getString(R.string.tile_battery_used), RideStats.batteryUsed(sessions)?.let { getString(R.string.battery_percent, it) } ?: dash)
+                )
+                if (climb != null) tiles += Tile(getString(R.string.tile_climb), getString(R.string.climb_value, climb.toInt()))
+                tiles += Tile(getString(R.string.tile_rides), sessions.size.toString())
+                fillTiles(totalTiles, tiles, 2)
+                if (sessions.any { it.chargeDetected }) chargedView.visibility = View.VISIBLE
+
+                timeline.setData(sessions.map {
+                    TimelineView.Segment(it.connectedAt, it.disconnectedAt ?: System.currentTimeMillis(), colorOf[it.id] ?: TrackMap.COLORS[0])
+                })
+
+                for (s in sessions) {
+                    val row = layoutInflater.inflate(R.layout.item_ride_row, ridesList, false)
+                    row.findViewById<View>(R.id.rideColor).backgroundTintList =
+                        android.content.res.ColorStateList.valueOf(colorOf[s.id] ?: TrackMap.COLORS[0])
+                    val dur = RideStats.durationS(s)?.let { durationText(it) } ?: getString(R.string.history_ongoing)
+                    row.findViewById<TextView>(R.id.rideTitle).text = timeFormat.format(java.util.Date(s.connectedAt)) + " · " + dur
+                    row.findViewById<TextView>(R.id.rideSub).text = getString(R.string.battery_range, percentText(s.batteryStart), percentText(s.batteryEnd))
+                    row.findViewById<TextView>(R.id.rideDist).text = kmText(RideStats.distanceKm(s))
+                    row.findViewById<TextView>(R.id.rideStats).text =
+                        if (s.avgKmh != null && s.maxKmh != null) getString(R.string.ride_avg_max, s.avgKmh, s.maxKmh) else ""
+                    row.isClickable = true
+                    row.setOnClickListener { selectedSessionId = s.id; navigateTo(Screen.HISTORY_DETAIL) }
+                    ridesList.addView(row)
+                }
+
+                // Speed through the day, dropping to 0 between rides so the gaps show.
+                val xs = ArrayList<Long>()
+                val ys = ArrayList<Double>()
+                for (s in sessions) {
+                    val rows = samples[s.id].orEmpty().filter { it.speedKmh != null }
+                    if (rows.isEmpty()) continue
+                    xs += rows.first().ts - 1; ys += 0.0
+                    for (r in rows) { xs += r.ts; ys += r.speedKmh!! }
+                    xs += rows.last().ts + 1; ys += 0.0
+                }
+                if (ys.isNotEmpty()) {
+                    val card = layoutInflater.inflate(R.layout.item_chart, chartContainer, false)
+                    card.findViewById<TextView>(R.id.chartTitle).text = getString(R.string.day_speed_chart)
+                    card.findViewById<TextView>(R.id.chartRange).text =
+                        getString(R.string.chart_range, "%.1f".format(ys.minOrNull()!!), "%.1f".format(ys.maxOrNull()!!))
+                    card.findViewById<LineChartView>(R.id.chartView).setData(xs, ys)
+                    chartContainer.addView(card)
+                }
             }
         }
         return root
@@ -1106,20 +1304,22 @@ class MainActivity : AppCompatActivity() {
     /**
      * The GPS card: summary, the OSM map (only when "Show map" is on; otherwise nothing is drawn),
      * a colour legend for several rides, and the GPX export button. Skipped when there is no route.
+     * [colors] = one colour per ride in [rides].
      */
-    private fun fillGpsSection(container: LinearLayout, rides: List<RideTrack>, fileName: String, exportLabel: Int) {
+    private fun fillGpsSection(container: LinearLayout, rides: List<RideTrack>, fileName: String, exportLabel: Int, colors: List<Int>) {
         val routes = rides.filter { it.points.isNotEmpty() }
         if (routes.isEmpty()) return
+        val routeColors = rides.indices.filter { rides[it].points.isNotEmpty() }.map { colors.getOrElse(it) { TrackMap.COLORS[0] } }
         val card = layoutInflater.inflate(R.layout.item_gps, container, false)
         card.findViewById<TextView>(R.id.gpsInfo).text =
             getString(R.string.gps_summary, routes.sumOf { it.points.size }, routes.sumOf { routeKm(it.points) })
         if (GpsTracker.showMap(this)) {
             val holder = card.findViewById<FrameLayout>(R.id.gpsMapHolder)
             holder.visibility = View.VISIBLE
-            val map = TrackMap.createMap(this, (320 * resources.displayMetrics.density).toInt())
+            val map = TrackMap.createMap(this, dpPx(320))
             holder.addView(map)
             mapView = map
-            TrackMap.showRoutes(map, routes, getString(R.string.gps_marker_start), getString(R.string.gps_marker_end))
+            TrackMap.showRoutes(map, routes, routeColors, getString(R.string.gps_marker_start), getString(R.string.gps_marker_end))
             if (routes.size > 1) {
                 val legend = card.findViewById<LinearLayout>(R.id.gpsLegend)
                 legend.visibility = View.VISIBLE
@@ -1127,7 +1327,7 @@ class MainActivity : AppCompatActivity() {
                 routes.forEachIndexed { i, r ->
                     legend.addView(TextView(this).apply {
                         text = getString(R.string.gps_legend_item, timeFormat.format(java.util.Date(r.session.connectedAt)), routeKm(r.points))
-                        setTextColor(TrackMap.COLORS[i % TrackMap.COLORS.size])
+                        setTextColor(routeColors[i])
                     })
                 }
             }
@@ -1165,55 +1365,15 @@ class MainActivity : AppCompatActivity() {
             card.findViewById<TextView>(R.id.chartTitle).text = getString(titleRes)
             card.findViewById<TextView>(R.id.chartRange).text =
                 getString(R.string.chart_range, "%.1f".format(ys.minOrNull()!!), "%.1f".format(ys.maxOrNull()!!))
-            card.findViewById<LineChartView>(R.id.chartView).setData(xs, ys)
+            card.findViewById<LineChartView>(R.id.chartView).apply {
+                setData(xs, ys)
+                if (titleRes == R.string.chart_battery) setColor(COLOR_OK)
+            }
             parent.addView(card)
         }
     }
 
     private fun percentText(value: Int?): String = value?.let { getString(R.string.battery_percent, it) } ?: dash
-
-    /** A ride summary card (not clickable by itself; the list adds the click). */
-    private fun buildSessionItem(s: SessionRow, parent: android.view.ViewGroup): View {
-        val item = layoutInflater.inflate(R.layout.item_session, parent, false)
-        val dateFormat = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
-        item.findViewById<TextView>(R.id.sessionTitle).text = dateFormat.format(java.util.Date(s.connectedAt))
-
-        val end = s.disconnectedAt
-        item.findViewById<TextView>(R.id.sessionDuration).text =
-            if (end == null) getString(R.string.history_ongoing)
-            else getString(R.string.history_duration, formatDuration(((end - s.connectedAt) / 1000).toInt()))
-
-        item.findViewById<TextView>(R.id.sessionBattery).text =
-            getString(R.string.history_battery, percentText(s.batteryStart), percentText(s.batteryEnd))
-
-        val distance = item.findViewById<TextView>(R.id.sessionDistance)
-        val odoStart = s.odoStartKm
-        val odoEnd = s.odoEndKm
-        if (odoStart != null && odoEnd != null) {
-            distance.text = getString(R.string.history_distance, odoEnd - odoStart, odoEnd)
-        } else {
-            distance.visibility = View.GONE
-        }
-
-        val tripTime = s.tripTimeS
-        val avg = s.avgKmh
-        val max = s.maxKmh
-        if (tripTime != null && avg != null && max != null) {
-            item.findViewById<TextView>(R.id.sessionTrip).apply {
-                text = getString(R.string.history_trip, formatDuration(tripTime), avg, max)
-                visibility = View.VISIBLE
-            }
-        }
-
-        if (s.chargeDetected) {
-            item.findViewById<TextView>(R.id.sessionCharged).apply {
-                text = getString(R.string.history_charged, percentText(s.prevBatteryEnd), percentText(s.batteryStart))
-                visibility = View.VISIBLE
-            }
-        }
-        item.isClickable = false
-        return item
-    }
 
     private fun formatSample(r: SampleRow): String {
         val time = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(r.ts))

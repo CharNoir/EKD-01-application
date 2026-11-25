@@ -11,132 +11,178 @@
         android:layout_height="wrap_content"
         android:padding="12dp">
 
-        <LinearLayout style="@style/CardContainer">
-            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <Button android:id="@+id/backBtn" style="@style/AmberButton.Row" android:text="@string/back" />
-                <Button android:id="@+id/historyBtn" style="@style/AmberButton.Row" android:layout_marginStart="8dp" android:text="@string/history_button" />
+        <TextView style="@style/PageTitle" android:text="@string/settings_title" />
+
+        <!-- Bike -->
+        <TextView style="@style/SectionLabel" android:text="@string/group_bike" />
+        <LinearLayout style="@style/Group">
+            <LinearLayout style="@style/SettingRow">
+                <TextView android:id="@+id/bikeNameLabel" style="@style/RowTitle" tools:text="My e-bike" />
+                <TextView android:id="@+id/bikeAddressLabel" style="@style/HintText" tools:text="AA:BB:CC:DD:EE:FF" />
+            </LinearLayout>
+            <Button android:id="@+id/chooseBikeBtn" style="@style/RowButton" android:text="@string/bike_choose" />
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <Button android:id="@+id/openKnocksBtn" style="@style/RowButton" android:text="@string/knocks_title" />
+                <TextView style="@style/HintText" android:paddingStart="14dp" android:paddingEnd="14dp" android:paddingBottom="10dp" android:text="@string/knocks_settings_hint" />
             </LinearLayout>
         </LinearLayout>
 
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/bike_title" />
-            <TextView android:id="@+id/bikeNameLabel" style="@style/BodyText" tools:text="My e-bike" />
-            <TextView android:id="@+id/bikeAddressLabel" style="@style/HintText" tools:text="AA:BB:CC:DD:EE:FF" />
-            <Button android:id="@+id/chooseBikeBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/bike_choose" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-
-            <TextView
-                style="@style/CardTitle"
-                android:text="@string/knocks_title" />
-
-            <TextView
-                style="@style/HintText"
-                android:paddingBottom="6dp"
-                android:text="@string/knocks_settings_hint" />
-
-            <Button
-                android:id="@+id/openKnocksBtn"
-                style="@style/AmberButton"
-                android:layout_width="match_parent"
-                android:text="@string/knocks_open" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/bt_unlock_title" />
-            <TextView android:id="@+id/btUnlockLabel" style="@style/BodyText" android:textSize="13sp" tools:text="BT unlock level: 1" />
-            <SeekBar android:id="@+id/btUnlockSlider" style="@style/AmberSlider" android:min="1" android:max="5" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/brightness_title" />
-            <TextView android:id="@+id/brightnessLabel" style="@style/BodyText" android:textSize="13sp" tools:text="Brightness: 2" />
-            <SeekBar android:id="@+id/brightnessSlider" style="@style/AmberSlider" android:min="1" android:max="4" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/device_settings" />
-            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <Button android:id="@+id/unitsKmBtn" style="@style/AmberButton.Row" android:text="@string/units_km" />
-                <Button android:id="@+id/unitsMiBtn" style="@style/AmberButton.Row" android:text="@string/units_mi" />
+        <!-- Display and controls -->
+        <TextView style="@style/SectionLabel" android:text="@string/group_display" />
+        <LinearLayout style="@style/Group">
+            <LinearLayout style="@style/SettingRow">
+                <TextView android:id="@+id/btUnlockLabel" style="@style/RowTitle" tools:text="BT unlock level: 1" />
+                <SeekBar android:id="@+id/btUnlockSlider" style="@style/AmberSlider" android:min="1" android:max="5" />
             </LinearLayout>
-            <EditText android:importantForAutofill="no" android:minHeight="48dp" android:id="@+id/autoOffInput" style="@style/StyledEditText" android:hint="@string/auto_off_hint" android:inputType="number" />
-            <Button android:id="@+id/setAutoOffBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/set_auto_off" />
+            <LinearLayout style="@style/SettingRow">
+                <TextView android:id="@+id/brightnessLabel" style="@style/RowTitle" tools:text="Brightness: 2" />
+                <SeekBar android:id="@+id/brightnessSlider" style="@style/AmberSlider" android:min="1" android:max="4" />
+            </LinearLayout>
+            <LinearLayout style="@style/SettingRow">
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/input_bg"
+                    android:padding="3dp">
+                    <Button
+                        android:id="@+id/unitsKmBtn"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:minHeight="0dp"
+                        android:textAllCaps="false"
+                        android:textSize="14sp"
+                        android:text="@string/units_km" />
+                    <Button
+                        android:id="@+id/unitsMiBtn"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:minHeight="0dp"
+                        android:textAllCaps="false"
+                        android:textSize="14sp"
+                        android:text="@string/units_mi" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/SettingRow">
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+                    <EditText
+                        android:id="@+id/autoOffInput"
+                        style="@style/StyledEditText"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:importantForAutofill="no"
+                        android:minHeight="48dp"
+                        android:hint="@string/auto_off_hint_short"
+                        android:inputType="number" />
+                    <Button android:id="@+id/setAutoOffBtn" style="@style/AmberButton" android:layout_marginStart="8dp" android:text="@string/set_auto_off" />
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
 
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/main_screen_title" />
-            <CheckBox
-                android:id="@+id/showBatteryPercentCheckbox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text_primary"
-                android:text="@string/show_battery_percent" />
+        <!-- App -->
+        <TextView style="@style/SectionLabel" android:text="@string/group_app" />
+        <LinearLayout style="@style/Group">
+            <LinearLayout style="@style/SettingRow">
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/showBatteryPercentCheckbox"
+                    style="@style/AppSwitch"
+                    android:text="@string/show_battery_percent" />
+            </LinearLayout>
+            <LinearLayout style="@style/SettingRow">
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/backgroundExecutionCheckbox"
+                    style="@style/AppSwitch"
+                    android:text="@string/background_execution_enabled" />
+                <TextView style="@style/HintText" android:text="@string/background_hint" />
+            </LinearLayout>
+            <Button android:id="@+id/notificationSettingsBtn" style="@style/RowButton" android:text="@string/notification_settings_button" />
         </LinearLayout>
 
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/background_title" />
-            <CheckBox
-                android:id="@+id/backgroundExecutionCheckbox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text_primary"
-                android:text="@string/background_execution_enabled" />
-            <TextView style="@style/HintText" android:text="@string/background_hint" />
-            <Button android:id="@+id/notificationSettingsBtn" style="@style/AmberButton" android:layout_width="match_parent" android:layout_marginTop="8dp" android:text="@string/notification_settings_button" />
+        <!-- Ride recording and data -->
+        <TextView style="@style/SectionLabel" android:text="@string/group_recording_data" />
+        <LinearLayout style="@style/Group">
+            <LinearLayout style="@style/SettingRow">
+                <TextView android:id="@+id/recordIntervalLabel" style="@style/RowTitle" android:textSize="14sp" />
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+                    <EditText
+                        android:id="@+id/recordIntervalInput"
+                        style="@style/StyledEditText"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:importantForAutofill="no"
+                        android:minHeight="48dp"
+                        android:hint="@string/record_interval_hint_short"
+                        android:inputType="number" />
+                    <Button android:id="@+id/setRecordIntervalBtn" style="@style/AmberButton" android:layout_marginStart="8dp" android:text="@string/record_interval_set" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/SettingRow">
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/gpsRecordCheckbox"
+                    style="@style/AppSwitch"
+                    android:text="@string/gps_record" />
+                <TextView style="@style/HintText" android:text="@string/gps_record_hint" />
+            </LinearLayout>
+            <LinearLayout style="@style/SettingRow">
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/gpsShowMapCheckbox"
+                    style="@style/AppSwitch"
+                    android:text="@string/gps_show_map" />
+                <TextView style="@style/HintText" android:text="@string/gps_show_map_hint" />
+            </LinearLayout>
+            <LinearLayout style="@style/SettingRow">
+                <TextView style="@style/RowTitle" android:textSize="14sp" android:text="@string/map_style_title" />
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/input_bg"
+                    android:padding="3dp">
+                    <Button
+                        android:id="@+id/mapStyleStdBtn"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:minHeight="0dp"
+                        android:textAllCaps="false"
+                        android:textSize="14sp"
+                        android:text="@string/map_style_standard" />
+                    <Button
+                        android:id="@+id/mapStyleCycleBtn"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:minHeight="0dp"
+                        android:textAllCaps="false"
+                        android:textSize="14sp"
+                        android:text="@string/map_style_cycling" />
+                    <Button
+                        android:id="@+id/mapStyleDarkBtn"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:minHeight="0dp"
+                        android:textAllCaps="false"
+                        android:textSize="14sp"
+                        android:text="@string/map_style_dark" />
+                </LinearLayout>
+                <TextView style="@style/HintText" android:text="@string/map_style_hint" />
+            </LinearLayout>
+            <Button android:id="@+id/gpsExportAllBtn" style="@style/RowButton" android:text="@string/gps_export_all" />
+            <Button android:id="@+id/gpsDeleteBtn" style="@style/RowButton" android:textColor="@color/bad" android:drawableEnd="@null" android:text="@string/gps_delete_all" />
         </LinearLayout>
 
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/gps_title" />
-            <CheckBox
-                android:id="@+id/gpsRecordCheckbox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minHeight="48dp"
-                android:textColor="@color/text_primary"
-                android:text="@string/gps_record" />
-            <TextView style="@style/HintText" android:text="@string/gps_record_hint" />
-            <CheckBox
-                android:id="@+id/gpsShowMapCheckbox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minHeight="48dp"
-                android:layout_marginTop="8dp"
-                android:textColor="@color/text_primary"
-                android:text="@string/gps_show_map" />
-            <TextView style="@style/HintText" android:text="@string/gps_show_map_hint" />
-            <Button android:id="@+id/gpsExportAllBtn" style="@style/AmberButton" android:layout_width="match_parent" android:layout_marginTop="8dp" android:text="@string/gps_export_all" />
-            <Button android:id="@+id/gpsDeleteBtn" style="@style/AmberButton" android:layout_width="match_parent" android:layout_marginTop="8dp" android:text="@string/gps_delete_all" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-
-            <TextView
-                style="@style/CardTitle"
-                android:text="@string/record_title" />
-
-            <TextView
-                android:id="@+id/recordIntervalLabel"
-                style="@style/BodyText"
-                android:textSize="13sp" />
-
-            <EditText
-                android:id="@+id/recordIntervalInput"
-                style="@style/StyledEditText"
-                android:hint="@string/record_interval_hint"
-                android:inputType="number" />
-
-            <Button
-                android:id="@+id/setRecordIntervalBtn"
-                style="@style/AmberButton"
-                android:layout_width="match_parent"
-                android:text="@string/record_interval_set" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/CardContainer">
-            <TextView style="@style/CardTitle" android:text="@string/developer_title" />
-            <Button android:id="@+id/developerNavBtn" style="@style/AmberButton" android:layout_width="match_parent" android:text="@string/developer_menu" />
+        <!-- Developer -->
+        <LinearLayout style="@style/Group" android:layout_marginTop="12dp" android:alpha="0.75">
+            <Button android:id="@+id/developerNavBtn" style="@style/RowButton" android:text="@string/developer_menu" />
         </LinearLayout>
 
     </LinearLayout>

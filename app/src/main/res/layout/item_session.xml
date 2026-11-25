@@ -4,14 +4,29 @@
     android:clickable="true"
     android:focusable="true">
 
-    <TextView android:id="@+id/sessionTitle" style="@style/CardTitle" />
-    <TextView android:id="@+id/sessionDuration" style="@style/BodyText" />
-    <TextView android:id="@+id/sessionBattery" style="@style/BodyText" />
-    <TextView android:id="@+id/sessionDistance" style="@style/BodyText" />
-    <TextView android:id="@+id/sessionTrip" style="@style/BodyText" android:visibility="gone" />
+    <TextView android:id="@+id/sessionTitle" style="@style/CardTitle" android:textSize="17sp" android:paddingBottom="0dp" />
+    <TextView android:id="@+id/sessionMeta" style="@style/HintText" />
+    <LinearLayout
+        android:id="@+id/sessionTiles"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginStart="-3dp"
+        android:layout_marginEnd="-3dp" />
+    <ProgressBar
+        android:id="@+id/sessionBatteryBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:layout_marginTop="10dp"
+        android:max="100"
+        android:progressDrawable="@drawable/progress_battery" />
+    <TextView android:id="@+id/sessionBattery" style="@style/HintText" android:layout_marginTop="4dp" />
     <TextView
         android:id="@+id/sessionCharged"
-        style="@style/BodyText"
-        android:textColor="@color/accent_text"
+        style="@style/HintText"
+        android:textColor="@color/amber"
+        android:layout_marginTop="2dp"
         android:visibility="gone" />
 </LinearLayout>

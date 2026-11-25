@@ -210,6 +210,13 @@ class RideDb(context: Context) : SQLiteOpenHelper(context.applicationContext, "e
         return sessions.map { RideTrack(it, loadTrack(it.id)) }
     }
 
+    /** All rides that started in [fromMs, toMs), oldest first (with or without a route). */
+    fun loadSessionsBetween(fromMs: Long, toMs: Long): List<SessionRow> =
+        readableDatabase.rawQuery(
+            "$SESSION_COLUMNS WHERE connected_at >= ? AND connected_at < ? ORDER BY connected_at, id",
+            arrayOf(fromMs.toString(), toMs.toString())
+        ).use { c -> buildList<SessionRow> { while (c.moveToNext()) add(c.toSession()) } }
+
     /** Every ride with a route, oldest first. */
     fun loadAllTracks(): List<RideTrack> = loadTracks(0L, Long.MAX_VALUE)
 
