@@ -28,9 +28,6 @@ object BikeRecorder {
     const val MIN_INTERVAL_S = 1
     const val MAX_INTERVAL_S = 3600
 
-    /** A battery percentage this many points higher than at the end of the previous session counts as "charged". */
-    const val CHARGE_JUMP_PCT = 15
-
     private const val CONNECTED = "connected"
     private const val DISCONNECTED = "disconnected"
 
@@ -163,8 +160,9 @@ object BikeRecorder {
         if (sessionId < 0 || firstT1Seen) return
         firstT1Seen = true
 
-        val prev = previousBatteryEnd()
-        val charged = prev != null && t.batteryPct - prev >= CHARGE_JUMP_PCT
+        val (prevId, prevStart, prev) = previousBattery()
+        val load = prevId?.let { db.rideLoad(it) }
+        val charged = RideStats.chargedBetween(prevStart, prev, t.batteryPct, load?.recentKmh, load?.drawup)
         val values = ContentValues().apply {
             put("battery_start", t.batteryPct)
             put("odo_start_km", t.odometerKm)
@@ -219,13 +217,15 @@ object BikeRecorder {
         db.writableDatabase.insertOrThrow("samples", null, values)
     }
 
-    /** Battery percentage at the end of the most recent earlier session of the same bike that has one. */
-    private fun previousBatteryEnd(): Int? {
+    /** Battery at the start and at the end of the most recent earlier session of the same bike that has an end value. */
+    private fun previousBattery(): Triple<Long?, Int?, Int?> {
         val address = sessionAddress
-        val sql = "SELECT battery_end FROM sessions WHERE id < ? AND battery_end IS NOT NULL" +
+        val sql = "SELECT id, battery_start, battery_end FROM sessions WHERE id < ? AND battery_end IS NOT NULL" +
             (if (address != null) " AND device_address = ?" else "") + " ORDER BY id DESC LIMIT 1"
         val args = if (address != null) arrayOf(sessionId.toString(), address) else arrayOf(sessionId.toString())
-        return db.readableDatabase.rawQuery(sql, args).use { if (it.moveToFirst() && !it.isNull(0)) it.getInt(0) else null }
+        return db.readableDatabase.rawQuery(sql, args).use {
+            if (it.moveToFirst()) Triple(it.getLong(0), if (it.isNull(1)) null else it.getInt(1), if (it.isNull(2)) null else it.getInt(2)) else Triple(null, null, null)
+        }
     }
 
     /** Closes sessions left open by a killed process, using their last sample as the end. */

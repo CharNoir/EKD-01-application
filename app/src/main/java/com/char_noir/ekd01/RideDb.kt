@@ -308,6 +308,72 @@ class RideDb(context: Context) : SQLiteOpenHelper(context.applicationContext, "e
             }
         }
 
+    /**
+     * Re-judges "charged since the previous ride" for every stored ride with [RideStats.chargedBetween]
+     * (the first rule used a plain 15-point jump, which battery recovery after a hard ride could fake).
+     * The judgement also looks at how hard the previous ride was. Runs once per rule version.
+     */
+    fun recomputeCharges(context: Context) {
+        val prefs = context.applicationContext.getSharedPreferences("ekd01_prefs", Context.MODE_PRIVATE)
+        if (prefs.getInt("charge_rule", 1) >= 4) return
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            class Prev(val start: Int?, val end: Int, val load: RideLoad)
+            val last = HashMap<String, Prev>() // per bike: its latest ride with an end value
+            db.rawQuery("SELECT id, COALESCE(device_address, ''), battery_start, battery_end FROM sessions ORDER BY id", null).use { c ->
+                while (c.moveToNext()) {
+                    val id = c.getLong(0)
+                    val bike = c.getString(1)
+                    val start = c.intOrNull(2)
+                    val end = c.intOrNull(3)
+                    val prev = last[bike]
+                    if (start != null) {
+                        val charged = prev != null && RideStats.chargedBetween(prev.start, prev.end, start, prev.load.recentKmh, prev.load.drawup)
+                        db.execSQL("UPDATE sessions SET charge_detected = ?, prev_battery_end = ? WHERE id = ?",
+                            arrayOf<Any?>(if (charged) 1 else 0, prev?.end, id))
+                    }
+                    if (end != null) last[bike] = Prev(start, end, rideLoad(db, id))
+                }
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        prefs.edit().putInt("charge_rule", 4).apply()
+    }
+
+    /** How hard a ride was on the battery, from its readings: see [RideStats.chargedBetween]. */
+    class RideLoad(val recentKmh: Double?, val drawup: Int?)
+
+    fun rideLoad(sessionId: Long): RideLoad = rideLoad(readableDatabase, sessionId)
+
+    private fun rideLoad(db: SQLiteDatabase, sessionId: Long): RideLoad {
+        var lastTs = Long.MIN_VALUE
+        val times = ArrayList<Long>()
+        val speeds = ArrayList<Double?>()
+        var runMin = Int.MAX_VALUE
+        var drawup = 0
+        var any = false
+        db.rawQuery(
+            "SELECT ts, speed_kmh, battery_pct FROM samples WHERE session_id = ? AND status = 'connected' ORDER BY ts, id",
+            arrayOf(sessionId.toString())
+        ).use { c ->
+            while (c.moveToNext()) {
+                val ts = c.getLong(0)
+                times += ts
+                speeds += c.doubleOrNull(1)
+                lastTs = ts
+                val pct = c.intOrNull(2) ?: continue
+                any = true
+                if (pct - runMin > drawup) drawup = pct - runMin
+                if (pct < runMin) runMin = pct
+            }
+        }
+        val recent = times.indices.filter { times[it] >= lastTs - 600_000 }.mapNotNull { speeds[it] }
+        return RideLoad(if (recent.isEmpty()) null else recent.average(), if (any) drawup else null)
+    }
+
     /** Removes the bike and all its rides and readings. */
     fun forgetDevice(address: String) {
         val db = writableDatabase

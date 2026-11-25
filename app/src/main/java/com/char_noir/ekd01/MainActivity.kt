@@ -221,6 +221,9 @@ class MainActivity : AppCompatActivity() {
         TrackMap.configure(this)
         BikeLink.init(this)
         BikeLink.addListener(linkListener)
+        dbExecutor.execute {
+            try { RideDb.get(this).recomputeCharges(this) } catch (e: Exception) { BikeLink.logDbError(e.message ?: e.javaClass.simpleName) }
+        }
         // Registrations can be lost (reboot, update); re-registering is harmless.
         if (BackgroundMode.isEnabled(this)) {
             BackgroundMode.register(this)
