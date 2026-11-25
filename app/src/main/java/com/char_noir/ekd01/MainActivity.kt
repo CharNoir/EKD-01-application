@@ -111,6 +111,8 @@ class MainActivity : AppCompatActivity() {
     // even though the whole screen gets re-inflated from scratch every time you navigate
     // back to it (at which point it re-seeds itself from BikeLink's last telemetry instead).
     private var lightIconBtn: ImageView? = null
+    /** Light button and assist -/+ : only usable while the bike is connected. */
+    private var mainControls: List<View> = emptyList()
     private var odoLabel: TextView? = null
     private var mainTripDistLabel: TextView? = null
     private var mainTripTimeLabel: TextView? = null
@@ -333,6 +335,13 @@ class MainActivity : AppCompatActivity() {
             sendNow(Protocol.setAssist(newLevel))
         }
 
+        mainControls = listOf(
+            root.findViewById(R.id.lightIconBtn),
+            root.findViewById(R.id.assistMinusBtn),
+            root.findViewById(R.id.assistPlusBtn)
+        )
+        updateMainControlsEnabled()
+
         speedValueLabel = root.findViewById(R.id.speedValueLabel)
         speedValueLabel?.text = lastT1?.let { "%.0f".format(it.speedKmh) } ?: dash
 
@@ -376,6 +385,16 @@ class MainActivity : AppCompatActivity() {
             BikeLink.State.CONNECTED -> COLOR_OK
         }
         connectionIcon?.imageTintList = android.content.res.ColorStateList.valueOf(color)
+        updateMainControlsEnabled()
+    }
+
+    /** Greys out and blocks the light and assist buttons while the bike is not connected. */
+    private fun updateMainControlsEnabled() {
+        val on = BikeLink.state == BikeLink.State.CONNECTED
+        for (v in mainControls) {
+            v.isEnabled = on
+            v.alpha = if (on) 1f else 0.35f
+        }
     }
 
     /** Updates the battery icon's fill width (via ClipDrawable level, 0-10000) and color
