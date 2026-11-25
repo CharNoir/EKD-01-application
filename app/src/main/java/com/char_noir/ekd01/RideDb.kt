@@ -20,7 +20,10 @@ data class SessionRow(
     val odoEndKm: Double?,
     val tripTimeS: Int?,
     val maxKmh: Double?,
-    val avgKmh: Double?
+    val avgKmh: Double?,
+    /** Our own figures from the recorded readings (see [RideDb.withMotion]); the display's trip values above are not used for summaries. */
+    val movingS: Int? = null,
+    val topKmh: Double? = null
 )
 
 /** A bike (display) the app has talked to. [nickname] is chosen by the user; [lastConnectedAt] is null if never connected. */
@@ -206,7 +209,7 @@ class RideDb(context: Context) : SQLiteOpenHelper(context.applicationContext, "e
             "$SESSION_COLUMNS WHERE connected_at >= ? AND connected_at < ? " +
                 "AND id IN (SELECT session_id FROM track_points) ORDER BY connected_at, id",
             arrayOf(fromMs.toString(), toMs.toString())
-        ).use { c -> buildList<SessionRow> { while (c.moveToNext()) add(c.toSession()) } }
+        ).use { c -> buildList<SessionRow> { while (c.moveToNext()) add(c.toSession()) } }.withMotion()
         return sessions.map { RideTrack(it, loadTrack(it.id)) }
     }
 
@@ -215,7 +218,7 @@ class RideDb(context: Context) : SQLiteOpenHelper(context.applicationContext, "e
         readableDatabase.rawQuery(
             "$SESSION_COLUMNS WHERE connected_at >= ? AND connected_at < ? ORDER BY connected_at, id",
             arrayOf(fromMs.toString(), toMs.toString())
-        ).use { c -> buildList<SessionRow> { while (c.moveToNext()) add(c.toSession()) } }
+        ).use { c -> buildList<SessionRow> { while (c.moveToNext()) add(c.toSession()) } }.withMotion()
 
     /** Every ride with a route, oldest first. */
     fun loadAllTracks(): List<RideTrack> = loadTracks(0L, Long.MAX_VALUE)
@@ -233,13 +236,13 @@ class RideDb(context: Context) : SQLiteOpenHelper(context.applicationContext, "e
         val args = if (deviceAddress != null) arrayOf(deviceAddress, limit.toString()) else arrayOf(limit.toString())
         return readableDatabase.rawQuery("$SESSION_COLUMNS$where ORDER BY id DESC LIMIT ?", args).use { c ->
             buildList<SessionRow> { while (c.moveToNext()) add(c.toSession()) }
-        }
+        }.withMotion()
     }
 
     fun loadSession(id: Long): SessionRow? =
         readableDatabase.rawQuery("$SESSION_COLUMNS WHERE id = ?", arrayOf(id.toString())).use { c ->
             if (c.moveToFirst()) c.toSession() else null
-        }
+        }?.let { listOf(it).withMotion().first() }
 
     /** Oldest first. */
     fun loadSamples(sessionId: Long): List<SampleRow> =
@@ -315,6 +318,42 @@ class RideDb(context: Context) : SQLiteOpenHelper(context.applicationContext, "e
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
+        }
+    }
+
+    /**
+     * Adds riding time and top speed worked out from our own readings. The display's trip counters
+     * are not used: the bike decides when a trip starts and ends, which is not our ride.
+     * Riding time = time between readings while the speed reading is above 0.5 km/h; a gap is counted
+     * at most twice the typical interval (at least 10 s), so a pause in recording is not counted as riding.
+     */
+    private fun List<SessionRow>.withMotion(): List<SessionRow> {
+        if (isEmpty()) return this
+        val ts = HashMap<Long, ArrayList<Long>>()
+        val sp = HashMap<Long, ArrayList<Double?>>()
+        readableDatabase.rawQuery(
+            "SELECT session_id, ts, speed_kmh FROM samples WHERE status = 'connected' AND session_id IN (" +
+                joinToString(",") { it.id.toString() } + ") ORDER BY session_id, ts, id",
+            null
+        ).use { c ->
+            while (c.moveToNext()) {
+                val id = c.getLong(0)
+                ts.getOrPut(id) { ArrayList() }.add(c.getLong(1))
+                sp.getOrPut(id) { ArrayList() }.add(c.doubleOrNull(2))
+            }
+        }
+        return map { s ->
+            val t = ts[s.id]
+            val v = sp[s.id]
+            if (t == null || v == null || t.size < 2) return@map s
+            val gaps = (1 until t.size).map { t[it] - t[it - 1] }.sorted()
+            val cap = maxOf(10_000L, 2 * gaps[gaps.size / 2])
+            var movingMs = 0L
+            for (i in 1 until t.size) {
+                val speed = v[i - 1]
+                if (speed != null && speed > 0.5) movingMs += minOf(t[i] - t[i - 1], cap)
+            }
+            s.copy(movingS = (movingMs / 1000).toInt(), topKmh = v.filterNotNull().maxOrNull())
         }
     }
 

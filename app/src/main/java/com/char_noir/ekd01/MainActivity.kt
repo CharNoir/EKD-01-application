@@ -1096,7 +1096,7 @@ class MainActivity : AppCompatActivity() {
             v.findViewById(R.id.dayTiles),
             listOf(
                 Tile(getString(R.string.tile_rides), rides.size.toString(), amber = true),
-                Tile(getString(R.string.stat_time), durationText(RideStats.totalSeconds(rides)))
+                Tile(getString(R.string.tile_riding_time), durationText(RideStats.totalSeconds(rides)))
             ),
             2
         )
@@ -1115,7 +1115,9 @@ class MainActivity : AppCompatActivity() {
             row.findViewById<TextView>(R.id.rideTitle).text = if (s.id in withTrack) getString(R.string.ride_title_gps, title) else title
             row.findViewById<TextView>(R.id.rideDist).text = kmText(RideStats.distanceKm(s))
             val parts = mutableListOf<String>()
-            if (s.avgKmh != null && s.maxKmh != null) parts += getString(R.string.ride_avg_max, s.avgKmh, s.maxKmh)
+            val avg = RideStats.avgSpeedKmh(listOf(s))
+            val top = s.topKmh
+            if (avg != null && top != null) parts += getString(R.string.ride_avg_max, avg, top)
             parts += getString(R.string.battery_range, percentText(s.batteryStart), percentText(s.batteryEnd))
             row.findViewById<TextView>(R.id.rideStats).text = parts.joinToString(" · ")
             val level = s.batteryEnd ?: s.batteryStart
@@ -1168,8 +1170,9 @@ class MainActivity : AppCompatActivity() {
                     distance.text = kmText(RideStats.distanceKm(ride))
                     val climb = RideStats.climbM(track)
                     val list = mutableListOf(
-                        Tile(getString(R.string.stat_avg), speedText(ride.avgKmh)),
-                        Tile(getString(R.string.stat_max), speedText(ride.maxKmh), amber = true),
+                        Tile(getString(R.string.tile_riding_time), RideStats.ridingSeconds(ride)?.let { durationText(it) } ?: dash),
+                        Tile(getString(R.string.stat_avg), speedText(RideStats.avgSpeedKmh(listOf(ride)))),
+                        Tile(getString(R.string.stat_max), speedText(ride.topKmh), amber = true),
                         Tile(getString(R.string.tile_battery), getString(R.string.battery_range, percentText(ride.batteryStart), percentText(ride.batteryEnd)))
                     )
                     if (climb != null) list += Tile(getString(R.string.tile_climb), getString(R.string.climb_value, climb.toInt()))
@@ -1261,8 +1264,10 @@ class MainActivity : AppCompatActivity() {
                     row.findViewById<TextView>(R.id.rideTitle).text = timeFormat.format(java.util.Date(s.connectedAt)) + " · " + dur
                     row.findViewById<TextView>(R.id.rideSub).text = getString(R.string.battery_range, percentText(s.batteryStart), percentText(s.batteryEnd))
                     row.findViewById<TextView>(R.id.rideDist).text = kmText(RideStats.distanceKm(s))
+                    val avg = RideStats.avgSpeedKmh(listOf(s))
+                    val top = s.topKmh
                     row.findViewById<TextView>(R.id.rideStats).text =
-                        if (s.avgKmh != null && s.maxKmh != null) getString(R.string.ride_avg_max, s.avgKmh, s.maxKmh) else ""
+                        if (avg != null && top != null) getString(R.string.ride_avg_max, avg, top) else ""
                     row.isClickable = true
                     row.setOnClickListener { selectedSessionId = s.id; navigateTo(Screen.HISTORY_DETAIL) }
                     ridesList.addView(row)

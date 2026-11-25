@@ -15,8 +15,8 @@ object RideStats {
     /** Time between connecting and disconnecting; null while the ride is still open. */
     fun durationS(s: SessionRow): Int? = s.disconnectedAt?.let { ((it - s.connectedAt) / 1000).toInt() }
 
-    /** Riding time: the display's trip time when it was recorded, otherwise the connection time. */
-    fun ridingSeconds(s: SessionRow): Int? = s.tripTimeS ?: durationS(s)
+    /** Riding time from our own readings (moving time); null when the ride has no usable readings. */
+    fun ridingSeconds(s: SessionRow): Int? = s.movingS
 
     fun totalKm(rides: List<SessionRow>): Double? {
         val parts = rides.mapNotNull { distanceKm(it) }
@@ -25,7 +25,7 @@ object RideStats {
 
     fun totalSeconds(rides: List<SessionRow>): Int = rides.sumOf { ridingSeconds(it) ?: 0 }
 
-    fun topSpeedKmh(rides: List<SessionRow>): Double? = rides.mapNotNull { it.maxKmh }.maxOrNull()
+    fun topSpeedKmh(rides: List<SessionRow>): Double? = rides.mapNotNull { it.topKmh }.maxOrNull()
 
     fun avgSpeedKmh(rides: List<SessionRow>): Double? {
         val km = totalKm(rides) ?: return null
