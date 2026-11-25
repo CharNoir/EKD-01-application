@@ -42,7 +42,7 @@ private val T9_KNOWN_BYTES: Map<Int, String> = mapOf(
     12 to "brightness", 15 to "btUnlock"
 )
 
-/** One line per byte: index, value in the requested base, and a [label] for bytes
+/** One line per byte: index, value in the requested base, and a `label` for bytes
  *  Protocol.kt already decodes. Unlabeled lines get a ">>" marker so they're easy to
  *  spot at a glance - those are the candidates worth watching for a speed signal. */
 private fun formatRawBytes(data: ByteArray, known: Map<Int, String>, hex: Boolean): String {
@@ -142,7 +142,7 @@ class MainActivity : AppCompatActivity() {
             updateLightButtonVisual()
             updateBatteryViews()
             updateMainAssistLabel()
-            speedValueLabel?.text = "%.0f".format(t.speedKmh)
+            speedValueLabel?.text = getString(R.string.fmt_0f, t.speedKmh)
             odoLabel?.text = getString(R.string.odo_value, t.odometerKm)
             mainTripDistLabel?.text = getString(R.string.distance_km, t.tripKm)
             updateRawViews()
@@ -155,8 +155,8 @@ class MainActivity : AppCompatActivity() {
 
         override fun onTelemetry9(t: Protocol.Telemetry9) {
             mainTripTimeLabel?.text = formatDuration(t.rideTimeS)
-            mainTripMaxLabel?.text = "%.1f".format(t.maxKmh)
-            mainTripAvgLabel?.text = "%.1f".format(t.avgKmh)
+            mainTripMaxLabel?.text = getString(R.string.fmt_1f, t.maxKmh)
+            mainTripAvgLabel?.text = getString(R.string.fmt_1f, t.avgKmh)
             updateRawViews()
         }
 
@@ -240,6 +240,7 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
     }
 
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
         when (currentScreen) {
             Screen.MAIN -> super.onBackPressed()
@@ -668,9 +669,9 @@ class MainActivity : AppCompatActivity() {
         val nextNextIconInput = root.findViewById<EditText>(R.id.nextNextIconInput)
         val pathRetainInput = root.findViewById<EditText>(R.id.pathRetainInput)
         root.findViewById<Button>(R.id.navPresetBtn).setOnClickListener {
-            tmpIconInput.setText("3"); curRetainInput.setText("200"); nextStepDistInput.setText("500")
-            nextIconInput.setText("1"); nextNextStepDistInput.setText("300"); nextNextIconInput.setText("8")
-            pathRetainInput.setText("1200")
+            tmpIconInput.setNum(3); curRetainInput.setNum(200); nextStepDistInput.setNum(500)
+            nextIconInput.setNum(1); nextNextStepDistInput.setNum(300); nextNextIconInput.setNum(8)
+            pathRetainInput.setNum(1200)
         }
         root.findViewById<Button>(R.id.navSendBtn).setOnClickListener {
             try {
@@ -790,7 +791,9 @@ class MainActivity : AppCompatActivity() {
         val action = KnockActions.byId(k.actionId)
         item.findViewById<TextView>(R.id.knockSequence).text = k.sequenceText
         item.findViewById<TextView>(R.id.knockAction).text =
-            (action?.let { getString(it.nameRes) } ?: k.actionId) + (k.parameter?.let { " · $it" } ?: "")
+            (action?.let { getString(it.nameRes) } ?: k.actionId).let { name ->
+                k.parameter?.let { getString(R.string.knock_action_param, name, it) } ?: name
+            }
         item.findViewById<TextView>(R.id.knockSummary).text = getString(R.string.knock_gap_summary, k.gapMs)
         item.findViewById<CompoundButton>(R.id.knockEnabled).apply {
             isChecked = k.enabled
@@ -833,7 +836,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         seqInput.setText(existing?.sequence?.joinToString("") ?: "")
-        gapInput.setText((existing?.gapMs ?: KnockStore.DEFAULT_GAP_MS).toString())
+        gapInput.setNum(existing?.gapMs ?: KnockStore.DEFAULT_GAP_MS)
         existing?.let { e ->
             val i = actions.indexOfFirst { it.id == e.actionId }
             if (i >= 0) spinner.setSelection(i)
@@ -1024,7 +1027,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun dpPx(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
+    /** Puts a number into an input field as plain digits (not localised, so it parses back the same). */
+    @android.annotation.SuppressLint("SetTextI18n")
+    private fun EditText.setNum(n: Number) = setText(n.toString())
+
     /** Fills [container] (vertical) with rows of [perRow] stat tiles. */
+    @Suppress("SameParameterValue")
     private fun fillTiles(container: LinearLayout, tiles: List<Tile>, perRow: Int) {
         container.removeAllViews()
         for (chunk in tiles.chunked(perRow)) {
@@ -1268,7 +1276,7 @@ class MainActivity : AppCompatActivity() {
                     row.findViewById<View>(R.id.rideColor).backgroundTintList =
                         android.content.res.ColorStateList.valueOf(colorOf[s.id] ?: TrackMap.COLORS[0])
                     val dur = RideStats.durationS(s)?.let { durationText(it) } ?: getString(R.string.history_ongoing)
-                    row.findViewById<TextView>(R.id.rideTitle).text = timeFormat.format(java.util.Date(s.connectedAt)) + " · " + dur
+                    row.findViewById<TextView>(R.id.rideTitle).text = getString(R.string.ride_title_fmt, timeFormat.format(java.util.Date(s.connectedAt)), dur)
                     row.findViewById<TextView>(R.id.rideSub).text = getString(R.string.battery_range, percentText(s.batteryStart), percentText(s.batteryEnd))
                     row.findViewById<TextView>(R.id.rideDist).text = kmText(RideStats.distanceKm(s))
                     val avg = RideStats.avgSpeedKmh(listOf(s))

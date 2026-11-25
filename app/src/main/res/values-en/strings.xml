@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">EKD01 Control</string>
     <string name="raw_telemetry_title">Raw telemetry bytes (&gt;&gt; = still unidentified)</string>
     <string name="raw_hex">Hex</string>
@@ -7,7 +7,7 @@
     <string name="light_title">Light</string>
     <string name="light_on">On</string>
     <string name="light_off">Off</string>
-    <string name="nav_startstop_title">Nav start/stop (0xF1)</string>
+    <string name="nav_startstop_title" tools:ignore="Typos">Nav start/stop (0xF1)</string>
     <string name="nav_start">Nav START</string>
     <string name="nav_stop">Nav STOP</string>
     <string name="nav_update_title">Nav update</string>
@@ -236,4 +236,8 @@
         <item quantity="one">%1$d ride · %2$s – %3$s</item>
         <item quantity="other">%1$d rides · %2$s – %3$s</item>
     </plurals>
+    <string name="fmt_0f" translatable="false">%.0f</string>
+    <string name="fmt_1f" translatable="false">%.1f</string>
+    <string name="knock_action_param" translatable="false">%1$s · %2$s</string>
+    <string name="ride_title_fmt" translatable="false">%1$s · %2$s</string>
 </resources>

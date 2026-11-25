@@ -227,4 +227,8 @@
         <item quantity="one">%1$d ride · %2$s – %3$s</item>
         <item quantity="other">%1$d rides · %2$s – %3$s</item>
     </plurals>
+    <string name="fmt_0f" translatable="false">%.0f</string>
+    <string name="fmt_1f" translatable="false">%.1f</string>
+    <string name="knock_action_param" translatable="false">%1$s · %2$s</string>
+    <string name="ride_title_fmt" translatable="false">%1$s · %2$s</string>
 </resources>
