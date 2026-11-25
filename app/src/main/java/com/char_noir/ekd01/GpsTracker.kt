@@ -25,6 +25,7 @@ object GpsTracker {
     private const val KEY_RECORD = "gps_record"
     private const val KEY_MAP = "gps_show_map"
     private const val KEY_STYLE = "gps_map_style"
+    private const val KEY_SPEED_COLORS = "gps_speed_colors"
 
     private const val MIN_INTERVAL_MS = 3_000L
     private const val MIN_DISTANCE_M = 5f
@@ -46,6 +47,12 @@ object GpsTracker {
     fun mapStyle(ctx: Context): Int = prefs(ctx).getInt(KEY_STYLE, 1).coerceIn(0, 2)
     fun setMapStyle(ctx: Context, value: Int) {
         prefs(ctx).edit().putInt(KEY_STYLE, value.coerceIn(0, 2)).apply()
+    }
+
+    /** Colour the route line by speed (true) or plain / per ride (false, default). */
+    fun speedColors(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_SPEED_COLORS, false)
+    fun setSpeedColors(ctx: Context, value: Boolean) {
+        prefs(ctx).edit().putBoolean(KEY_SPEED_COLORS, value).apply()
     }
 
     fun setShowMap(ctx: Context, value: Boolean) {

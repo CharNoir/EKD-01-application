@@ -1324,10 +1324,31 @@ class MainActivity : AppCompatActivity() {
             val map = TrackMap.createMap(this, dpPx(320))
             holder.addView(map)
             mapView = map
-            TrackMap.showRoutes(map, routes, routeColors, getString(R.string.gps_marker_start), getString(R.string.gps_marker_end))
+            val rideLegend = card.findViewById<LinearLayout>(R.id.gpsLegend)
+            val speedLegend = card.findViewById<LinearLayout>(R.id.gpsSpeedLegend)
+            val plainBtn = card.findViewById<Button>(R.id.gpsColorPlainBtn)
+            val speedBtn = card.findViewById<Button>(R.id.gpsColorSpeedBtn)
+            val scaleMax = TrackMap.speedScaleMax(routes)
+            card.findViewById<View>(R.id.gpsSpeedBar).background =
+                android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT, TrackMap.SPEED_COLORS).apply { cornerRadius = dpPx(5).toFloat() }
+            card.findViewById<TextView>(R.id.gpsSpeedMin).text = getString(R.string.gps_speed_min)
+            card.findViewById<TextView>(R.id.gpsSpeedMax).text = getString(R.string.gps_speed_max, scaleMax)
+            fun drawRoutes(bySpeed: Boolean) {
+                TrackMap.showRoutes(map, routes, routeColors, getString(R.string.gps_marker_start), getString(R.string.gps_marker_end), bySpeed)
+                for ((btn, on) in listOf(plainBtn to !bySpeed, speedBtn to bySpeed)) {
+                    btn.setBackgroundResource(if (on) R.drawable.seg_on else android.R.color.transparent)
+                    btn.setTextColor(getColor(if (on) R.color.on_amber else R.color.text_hint))
+                    btn.typeface = if (on) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+                }
+                speedLegend.visibility = if (bySpeed) View.VISIBLE else View.GONE
+                rideLegend.visibility = if (!bySpeed && routes.size > 1) View.VISIBLE else View.GONE
+            }
+            card.findViewById<View>(R.id.gpsColorToggle).visibility = View.VISIBLE
+            plainBtn.setOnClickListener { GpsTracker.setSpeedColors(this, false); drawRoutes(false) }
+            speedBtn.setOnClickListener { GpsTracker.setSpeedColors(this, true); drawRoutes(true) }
+            drawRoutes(GpsTracker.speedColors(this))
             if (routes.size > 1) {
-                val legend = card.findViewById<LinearLayout>(R.id.gpsLegend)
-                legend.visibility = View.VISIBLE
+                val legend = rideLegend
                 val timeFormat = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
                 routes.forEachIndexed { i, r ->
                     legend.addView(TextView(this).apply {

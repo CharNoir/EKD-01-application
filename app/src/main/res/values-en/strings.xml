@@ -222,4 +222,8 @@
     <string name="map_style_cycling">Cycling</string>
     <string name="map_style_dark">Dark</string>
     <string name="map_style_hint">Standard: OpenStreetMap. Cycling: CyclOSM (OSM France), shows bike lanes and routes. Dark: CARTO Dark Matter.</string>
+    <string name="gps_color_plain">Plain</string>
+    <string name="gps_color_speed">By speed</string>
+    <string name="gps_speed_min">0 km/h</string>
+    <string name="gps_speed_max">%1$d+ km/h</string>
 </resources>
