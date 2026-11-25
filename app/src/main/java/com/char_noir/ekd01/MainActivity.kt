@@ -3,7 +3,6 @@ package com.char_noir.ekd01
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
@@ -611,8 +610,11 @@ class MainActivity : AppCompatActivity() {
         BackgroundMode.setEnabled(this, true)
         val power = getSystemService(PowerManager::class.java)
         if (power != null && !power.isIgnoringBatteryOptimizations(packageName)) {
+            // Opens the system's battery-optimisation list (no special permission, unlike the one-tap dialog).
+            // The user picks this app there and chooses "Don't optimize": the same exemption.
             try {
-                startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                Toast.makeText(this, getString(R.string.bg_battery_hint, getString(R.string.app_name)), Toast.LENGTH_LONG).show()
             } catch (_: Exception) {
                 // No such settings screen on this device: the user can still do it by hand.
             }

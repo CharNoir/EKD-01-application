@@ -217,4 +217,5 @@
     <string name="gps_color_speed">By speed</string>
     <string name="gps_speed_min">0 km/h</string>
     <string name="gps_speed_max">%1$d+ km/h</string>
+    <string name="bg_battery_hint">In the list, switch to “All apps”, find %1$s and choose “Don’t optimize”.</string>
 </resources>
