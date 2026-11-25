@@ -940,8 +940,8 @@ class MainActivity : AppCompatActivity() {
         val last = d.lastConnectedAt
         item.findViewById<TextView>(R.id.deviceInfo).text =
             if (last == null) getString(R.string.device_no_rides)
-            else getString(
-                R.string.device_rides, d.sessionCount,
+            else resources.getQuantityString(
+                R.plurals.device_rides, d.sessionCount, d.sessionCount,
                 java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT).format(java.util.Date(last))
             )
 
@@ -1230,8 +1230,8 @@ class MainActivity : AppCompatActivity() {
                 if (sessions.isEmpty()) { empty.visibility = View.VISIBLE; return@runOnUiThread }
                 val colorOf = sessions.mapIndexed { i, s -> s.id to TrackMap.COLORS[i % TrackMap.COLORS.size] }.toMap()
                 val last = sessions.last()
-                subtitle.text = getString(
-                    R.string.day_subtitle, sessions.size,
+                subtitle.text = resources.getQuantityString(
+                    R.plurals.day_subtitle, sessions.size, sessions.size,
                     timeFormat.format(java.util.Date(sessions.first().connectedAt)),
                     timeFormat.format(java.util.Date(last.disconnectedAt ?: System.currentTimeMillis()))
                 )
@@ -1321,7 +1321,7 @@ class MainActivity : AppCompatActivity() {
         val routeColors = rides.indices.filter { rides[it].points.isNotEmpty() }.map { colors.getOrElse(it) { TrackMap.COLORS[0] } }
         val card = layoutInflater.inflate(R.layout.item_gps, container, false)
         card.findViewById<TextView>(R.id.gpsInfo).text =
-            getString(R.string.gps_summary, routes.sumOf { it.points.size }, routes.sumOf { routeKm(it.points) })
+            routes.sumOf { it.points.size }.let { n -> resources.getQuantityString(R.plurals.gps_summary, n, n, routes.sumOf { routeKm(it.points) }) }
         if (GpsTracker.showMap(this)) {
             val holder = card.findViewById<FrameLayout>(R.id.gpsMapHolder)
             holder.visibility = View.VISIBLE

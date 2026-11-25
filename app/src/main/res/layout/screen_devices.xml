@@ -22,6 +22,7 @@
             style="@style/HintText"
             android:visibility="gone"
             android:paddingStart="6dp"
+            android:paddingEnd="6dp"
             android:paddingBottom="8dp"
             android:text="@string/devices_empty" />
 

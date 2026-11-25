@@ -15,6 +15,7 @@
             android:id="@+id/detailSubtitle"
             style="@style/HintText"
             android:paddingStart="6dp"
+            android:paddingEnd="6dp"
             android:paddingBottom="10dp" />
 
         <LinearLayout style="@style/HeroBox">

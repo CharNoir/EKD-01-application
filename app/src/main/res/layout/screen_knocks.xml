@@ -39,6 +39,7 @@
             style="@style/HintText"
             android:visibility="gone"
             android:paddingStart="6dp"
+            android:paddingEnd="6dp"
             android:paddingTop="12dp"
             android:text="@string/knocks_empty" />
 

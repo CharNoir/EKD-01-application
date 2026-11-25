@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ride history (with optional GPS routes) must stay on the phone: keep the database out of Google cloud backups.
+     Direct phone-to-phone transfer (cable / device setup) still carries everything. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="." />
+        <include domain="sharedpref" path="." />
+    </device-transfer>
+</data-extraction-rules>

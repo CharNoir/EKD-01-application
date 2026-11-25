@@ -7,7 +7,7 @@
     android:paddingEnd="20dp"
     android:paddingTop="8dp">
 
-    <TextView style="@style/SectionLabel" android:paddingStart="0dp" android:text="@string/knock_sequence_label" />
+    <TextView style="@style/SectionLabel" android:paddingStart="0dp" android:paddingEnd="0dp" android:text="@string/knock_sequence_label" />
     <EditText
         android:id="@+id/knockSequenceInput"
         style="@style/StyledEditText"
@@ -16,7 +16,7 @@
         android:inputType="number"
         android:minHeight="48dp" />
 
-    <TextView style="@style/SectionLabel" android:paddingStart="0dp" android:text="@string/knock_gap_label" />
+    <TextView style="@style/SectionLabel" android:paddingStart="0dp" android:paddingEnd="0dp" android:text="@string/knock_gap_label" />
     <EditText
         android:id="@+id/knockGapInput"
         style="@style/StyledEditText"
@@ -25,14 +25,15 @@
         android:inputType="number"
         android:minHeight="48dp" />
 
-    <TextView style="@style/SectionLabel" android:paddingStart="0dp" android:text="@string/knock_action_label" />
+    <TextView style="@style/SectionLabel" android:paddingStart="0dp" android:paddingEnd="0dp" android:text="@string/knock_action_label" />
     <Spinner
         android:id="@+id/knockActionSpinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="48dp"
         android:background="@drawable/input_bg"
-        android:paddingStart="6dp" />
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp" />
 
     <EditText
         android:id="@+id/knockParamInput"

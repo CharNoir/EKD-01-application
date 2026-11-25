@@ -89,7 +89,6 @@
     <string name="device_unnamed">EKD01 %1$s</string>
     <string name="device_active">✓ In use</string>
     <string name="device_no_rides">No rides recorded yet</string>
-    <string name="device_rides">%1$d rides · last %2$s</string>
     <string name="device_rename">Rename</string>
     <string name="device_forget">Forget</string>
     <string name="device_rename_title">Bike name</string>
@@ -165,7 +164,6 @@
     <string name="gps_background_denied">Without \"Allow all the time\", GPS is recorded only while the app is open.</string>
     <string name="gps_continue">Continue</string>
     <string name="gps_section_title">GPS route</string>
-    <string name="gps_summary">%1$d points · %2$.1f km</string>
     <string name="gps_map_off_hint">The map is off (Settings). The route is recorded and can be exported.</string>
     <string name="gps_export_ride">Export route (GPX)</string>
     <string name="gps_export_day">Export day (GPX)</string>
@@ -205,7 +203,6 @@
     <string name="tile_top_speed">Top speed</string>
     <string name="tile_battery_used">Battery used</string>
     <string name="day_total">Day total</string>
-    <string name="day_subtitle">%1$d rides · %2$s – %3$s</string>
     <string name="day_charged">⚡ Charged between rides</string>
     <string name="day_timeline">Timeline</string>
     <string name="day_rides">Rides</string>
@@ -227,4 +224,16 @@
     <string name="gps_speed_min">0 km/h</string>
     <string name="gps_speed_max">%1$d+ km/h</string>
     <string name="bg_battery_hint">In the list, switch to “All apps”, find %1$s and choose “Don’t optimize”.</string>
+    <plurals name="device_rides">
+        <item quantity="one">%1$d ride · last %2$s</item>
+        <item quantity="other">%1$d rides · last %2$s</item>
+    </plurals>
+    <plurals name="gps_summary">
+        <item quantity="one">%1$d point · %2$.1f km</item>
+        <item quantity="other">%1$d points · %2$.1f km</item>
+    </plurals>
+    <plurals name="day_subtitle">
+        <item quantity="one">%1$d ride · %2$s – %3$s</item>
+        <item quantity="other">%1$d rides · %2$s – %3$s</item>
+    </plurals>
 </resources>

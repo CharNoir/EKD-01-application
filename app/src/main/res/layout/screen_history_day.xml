@@ -15,12 +15,14 @@
             android:id="@+id/daySubtitle"
             style="@style/HintText"
             android:paddingStart="6dp"
+            android:paddingEnd="6dp"
             android:paddingBottom="10dp" />
         <TextView
             android:id="@+id/dayEmpty"
             style="@style/HintText"
             android:visibility="gone"
             android:paddingStart="6dp"
+            android:paddingEnd="6dp"
             android:text="@string/gps_day_empty" />
 
         <LinearLayout
